@@ -85,19 +85,11 @@ class Agent():
     def choose_action(self, observation):
 
         if np.random.random() < self.epsilon:
-
-            if np.random.random() < self.epsilon ** 5:
-                action = -1
-
-            else:
-                action = np.random.choice(self.action_space)
-
+            action = np.random.choice(self.action_space)
             dqn_command = False
-
         else:
             state = np.array([observation])
             actions = self.q_eval.predict(state)
-
             action = np.argmax(actions)
             dqn_command = True
 
