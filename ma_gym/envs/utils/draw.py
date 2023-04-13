@@ -2,6 +2,7 @@ from typing import Union
 
 from PIL import Image, ImageDraw
 
+
 def get_cell_sizes(cell_size: Union[int, list, tuple]):
     """Handle multiple type options of `cell_size`.
 

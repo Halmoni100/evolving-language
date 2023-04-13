@@ -2,7 +2,7 @@ import argparse
 
 import gym
 
-from wrappers import Monitor
+from ma_gym.wrappers import Monitor
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Random Agent for ma-gym')
@@ -12,7 +12,8 @@ if __name__ == '__main__':
                         help='episodes (default: %(default)s)')
     args = parser.parse_args()
 
-    env = gym.make(args.env)
+    #env = gym.make(args.env)
+    env = gym.make('ma_gym:Switch2-v0')
     env = Monitor(env, directory='recordings/' + args.env, force=True)
     for ep_i in range(args.episodes):
         done_n = [False for _ in range(env.n_agents)]

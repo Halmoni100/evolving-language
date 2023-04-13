@@ -5,7 +5,7 @@ from gym import error, logger
 from gym.utils import closer
 from gym.wrappers import Monitor as MO
 
-from wrappers.monitoring import stats_recorder
+from ma_gym.wrappers.monitoring import stats_recorder
 
 FILE_PREFIX = 'openaigym'
 MANIFEST_PREFIX = FILE_PREFIX + '.manifest'

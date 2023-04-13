@@ -2,7 +2,7 @@ import argparse
 
 import gym
 
-from wrappers import Monitor
+from ma_gym.wrappers import Monitor
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Interactive Agent for ma-gym')

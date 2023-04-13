@@ -1,5 +1,6 @@
 import gym
 
+
 class MultiAgentObservationSpace(list):
     def __init__(self, agents_observation_space):
         for x in agents_observation_space:
