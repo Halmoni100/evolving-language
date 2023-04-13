@@ -6,14 +6,14 @@ from ma_gym.wrappers import Monitor
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Random Agent for ma-gym')
-    parser.add_argument('--env', default='Lumberjack-v0',
+    parser.add_argument('--env', default='Lumberjacks-v0',
                         help='Name of the environment (default: %(default)s)')
     parser.add_argument('--episodes', type=int, default=1,
                         help='episodes (default: %(default)s)')
     args = parser.parse_args()
 
     #env = gym.make(args.env)
-    env = gym.make('ma_gym:Switch2-v0')
+    env = gym.make('ma_gym:Lumberjacks-v0')
     env = Monitor(env, directory='recordings/' + args.env, force=True)
     for ep_i in range(args.episodes):
         done_n = [False for _ in range(env.n_agents)]
