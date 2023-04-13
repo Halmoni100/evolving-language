@@ -380,14 +380,22 @@ WALL_COLOR = 'black'
 
 CELL_SIZE = 35
 
+NUM_WORDS = 10
+
 ACTIONS_IDS = {
     'noop': 0,
     'down': 1,
     'left': 2,
     'up': 3,
     'right': 4,
-    ## TODO: add communication tokens
 }
+
+## ADD COMMUNICATION WORDS TO ACTION SPACE
+word_names = ["word"+str(i) for i in range(0, NUM_WORDS)]
+word_action_ids = [i for i in range(max(ACTIONS_IDS.values())+1, max(ACTIONS_IDS.values())+NUM_WORDS+1)]
+ACTIONS_IDS.update(dict(zip(word_names, word_action_ids)))
+
+
 
 PRE_IDS = {
     'empty': 0,
