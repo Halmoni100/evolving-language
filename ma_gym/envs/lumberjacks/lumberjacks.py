@@ -313,6 +313,7 @@ class Lumberjacks(gym.Env):
         for (agent_id, agent), action in zip(self._agent_generator(), agents_action):
             if not self._agent_dones[agent_id]:
                 self._update_agent_pos(agent, action)
+                ## TODO: update communication to env bulletin
 
         # Cut down trees
         mask = (np.sum(self._agent_map, axis=2) >= self._tree_map) & (self._tree_map > 0)
@@ -385,6 +386,7 @@ ACTIONS_IDS = {
     'left': 2,
     'up': 3,
     'right': 4,
+    ## TODO: add communication tokens
 }
 
 PRE_IDS = {
