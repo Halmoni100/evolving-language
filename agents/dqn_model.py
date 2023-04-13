@@ -128,23 +128,6 @@ class Agent():
 
 
 
-    #TODO: THIS
-    def supervised_learn(self, X, Y, batch_size):
-
-        X, Y = shuffle(X, Y, random_state=0)
-
-        num_batches = X.shape[0] // batch_size
-
-        for i in range(num_batches):
-
-            X_batch = X[batch_size * i:batch_size * (i+1), :]
-            Y_batch = Y[batch_size * i:batch_size * (i+1)]
-
-            
-
-
-
-
     def save_model(self):
         self.q_eval.save(self.model_file)
 
