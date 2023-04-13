@@ -26,7 +26,7 @@ if __name__ == '__main__':
 
         env.seed(ep_i)
         obs_n = env.reset()
-        env.render()
+        # env.render()
 
         while not all(done_n):
             
@@ -46,4 +46,5 @@ if __name__ == '__main__':
                 agent_list[i].learn()
 
         print('Episode #{} Reward: {}'.format(ep_i, ep_reward))
+    
     env.close()
