@@ -102,9 +102,9 @@ class Lumberjacks(gym.Env):
         self._agent_dones = None
         mask_size = np.prod(tuple(2 * v + 1 for v in self._agent_view))
         # Agent ID (1) + Pos (2) + Step (1) + Neighborhood (2 * mask_size)
-        self.obs_len = (1 + 2 + 1 + 2 * mask_size)
-        obs_high = np.array([1.] * self.obs_len, dtype=np.float32)
-        obs_low = np.array([0.] * self.obs_len, dtype=np.float32)
+        self._obs_len = (1 + 2 + 1 + 2 * mask_size)
+        obs_high = np.array([1.] * self._obs_len, dtype=np.float32)
+        obs_low = np.array([0.] * self._obs_len, dtype=np.float32)
         if self.full_observable:
             obs_high = np.tile(obs_high, self.n_agents)
             obs_low = np.tile(obs_low, self.n_agents)
@@ -114,8 +114,6 @@ class Lumberjacks(gym.Env):
         self._base_img = draw_grid(self._grid_shape[0], self._grid_shape[1], cell_size=CELL_SIZE, fill='white')
         self._viewer = None
 
-    def get_input_dims(self):
-        return self.obs_len
 
     def get_action_meanings(self, agent_id: int = None) -> Union[List[str], List[List[str]]]:
         """Returns list of actions meaning for `agent_id`.
