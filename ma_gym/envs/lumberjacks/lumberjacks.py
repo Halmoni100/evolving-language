@@ -77,7 +77,6 @@ class Lumberjacks(gym.Env):
         assert n_agents + n_trees <= np.prod(grid_shape)
         assert 1 <= agent_view[0] <= grid_shape[0] and 1 <= agent_view[1] <= grid_shape[1]
 
-        self.obs_len = None
         self._grid_shape = grid_shape
         self.n_agents = n_agents
         self._n_trees = n_trees
