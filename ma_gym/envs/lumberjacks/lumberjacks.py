@@ -248,6 +248,7 @@ class Lumberjacks(gym.Env):
             mask: tuple of slices in extended coordinates.
         """
         agent_iter = np.ndenumerate(np.sum(self._agent_map[mask], axis=2))
+        print(self._tree_map[mask].size)
         tree_iter = np.nditer(self._tree_map[mask])
         for (pos, n_a), n_t in zip(agent_iter, tree_iter):
             yield pos, n_a, n_t
@@ -367,11 +368,15 @@ class Lumberjacks(gym.Env):
         #                       self._agent_view[1] + self._grid_shape[1] - 1),
         #                      ))
 
-        if next_pos[0] < 0: next_pos[0] = 0
-        if next_pos[0] >= self._grid_shape[0]: next_pos[0] = self._grid_shape[0] - 1
+        if next_pos[0] < 0:
+            next_pos = (0, next_pos[1])
+        if next_pos[0] >= self._grid_shape[0]:
+            next_pos = (self._grid_shape[0] - 1, next_pos[1])
 
-        if next_pos[1] < 0: next_pos[1] = 0
-        if next_pos[1] >= self._grid_shape[1]: next_pos[1] = self._grid_shape[1] - 1
+        if next_pos[1] < 0:
+            next_pos = (next_pos[0], 0)
+        if next_pos[1] >= self._grid_shape[1]:
+            next_pos = (next_pos[0], self._grid_shape[1] - 1)
         
         return next_pos
 
