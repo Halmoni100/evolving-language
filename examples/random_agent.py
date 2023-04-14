@@ -16,7 +16,7 @@ if __name__ == '__main__':
     # env = Monitor(env, directory='recordings/' + args.env, force=True)
 
     lr = 0.001
-    episodes = 100
+    episodes = 20000
 
     agent_list = []
     for i in range(env.n_agents):
