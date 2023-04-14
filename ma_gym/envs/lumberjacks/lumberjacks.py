@@ -366,10 +366,14 @@ class Lumberjacks(gym.Env):
         #                      (self._agent_view[0] + self._grid_shape[0] - 1,
         #                       self._agent_view[1] + self._grid_shape[1] - 1),
         #                      ))
-        return (
-            min(max(next_pos[0], self._agent_view[0]), self._grid_shape[0] - 1),
-            min(max(next_pos[1], self._agent_view[1]), self._grid_shape[1] - 1),
-        )
+
+        if next_pos[0] < 0: next_pos[0] = 0
+        if next_pos[0] >= self._grid_shape[0]: next_pos[0] = self._grid_shape[0] - 1
+
+        if next_pos[1] < 0: next_pos[1] = 0
+        if next_pos[1] >= self._grid_shape[1]: next_pos[1] = self._grid_shape[1] - 1
+        
+        return next_pos
 
     def seed(self, n: Union[None, int] = None):
         self.np_random, seed = seeding.np_random(n)
