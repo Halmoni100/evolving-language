@@ -340,18 +340,24 @@ class Lumberjacks(gym.Env):
         agent.pos = next_pos
         self._agent_map[next_pos[0], next_pos[1], agent.id] = 1
 
+
     def _next_pos(self, curr_pos: Coordinates, move: int) -> Coordinates:
         """Returns next valid position in extended coordinates given by `move` command relative to `curr_pos`."""
         if move == ACTIONS_IDS['noop']:
             next_pos = curr_pos
+            print("noop")
         elif move == ACTIONS_IDS['down']:
             next_pos = (curr_pos[0] + 1, curr_pos[1])
+            print("down")
         elif move == ACTIONS_IDS['left']:
             next_pos = (curr_pos[0], curr_pos[1] - 1)
+            print("left")
         elif move == ACTIONS_IDS['up']:
             next_pos = (curr_pos[0] - 1, curr_pos[1])
+            print("up")
         elif move == ACTIONS_IDS['right']:
             next_pos = (curr_pos[0], curr_pos[1] + 1)
+            print("right")
         else:
             raise ValueError('Unknown action {}. Valid action are {}'.format(move, list(ACTIONS_IDS.values())))
         # np.clip is significantly slower, see: https://github.com/numpy/numpy/issues/14281
