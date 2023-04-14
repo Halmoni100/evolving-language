@@ -4,6 +4,7 @@ import argparse
 import sys
 sys.path.append("..")
 from agents.dqn_model import Agent
+from ma_gym.envs.lumberjacks import Lumberjacks
 
 import gym
 
@@ -12,14 +13,14 @@ from ma_gym.wrappers import Monitor
 if __name__ == '__main__':
 
     #env = gym.make(args.env)
-    env = gym.make('ma_gym:Lumberjacks-v1')
+    env = Lumberjacks()
 
     lr = 0.001
     episodes = 20000
 
     agent_list = []
     for i in range(env.n_agents):
-        agent = Agent(gamma=0.998, epsilon=1.0, lr=lr, input_dims=env.obs_len * 2, n_actions=5, mem_size=50000, batch_size=64, epsilon_dec=0.9, epsilon_min=0.001, fname="dqn_model_23jul.h5")
+        agent = Agent(gamma=0.998, epsilon=1.0, lr=lr, input_dims=(env.obs_len * 2), n_actions=5, mem_size=50000, batch_size=64, epsilon_dec=0.9, epsilon_min=0.001, fname="dqn_model_23jul.h5")
         agent_list.append(agent)
 
 

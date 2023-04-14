@@ -77,6 +77,7 @@ class Lumberjacks(gym.Env):
         assert n_agents + n_trees <= np.prod(grid_shape)
         assert 1 <= agent_view[0] <= grid_shape[0] and 1 <= agent_view[1] <= grid_shape[1]
 
+        self.obs_len = None
         self._grid_shape = grid_shape
         self.n_agents = n_agents
         self._n_trees = n_trees
@@ -87,6 +88,7 @@ class Lumberjacks(gym.Env):
         self._tree_cutdown_reward = tree_cutdown_reward
         self._max_steps = max_steps
         self.steps_beyond_done = 0
+
         self.seed()
 
         self._agents = []  # List[Agent]
@@ -99,7 +101,6 @@ class Lumberjacks(gym.Env):
         self._tree_map = None
         self._total_episode_reward = None
         self._agent_dones = None
-
         mask_size = np.prod(tuple(2 * v + 1 for v in self._agent_view))
         # Agent ID (1) + Pos (2) + Step (1) + Neighborhood (2 * mask_size)
         self.obs_len = (1 + 2 + 1 + 2 * mask_size)
@@ -113,6 +114,9 @@ class Lumberjacks(gym.Env):
 
         self._base_img = draw_grid(self._grid_shape[0], self._grid_shape[1], cell_size=CELL_SIZE, fill='white')
         self._viewer = None
+
+    def get_input_dims(self):
+        return self.obs_len
 
     def get_action_meanings(self, agent_id: int = None) -> Union[List[str], List[List[str]]]:
         """Returns list of actions meaning for `agent_id`.
