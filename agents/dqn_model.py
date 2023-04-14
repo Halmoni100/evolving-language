@@ -1,5 +1,8 @@
 import numpy as np
 import tensorflow as tf
+gpus = tf.config.experimental.list_physical_devices('GPU')
+for gpu in gpus:
+  tf.config.experimental.set_memory_growth(gpu, True)
 from tensorflow import keras
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.models import load_model
@@ -85,19 +88,11 @@ class Agent():
     def choose_action(self, observation):
 
         if np.random.random() < self.epsilon:
-
-            if np.random.random() < self.epsilon ** 5:
-                action = -1
-
-            else:
-                action = np.random.choice(self.action_space)
-
+            action = np.random.choice(self.action_space)
             dqn_command = False
-
         else:
             state = np.array([observation])
             actions = self.q_eval.predict(state)
-
             action = np.argmax(actions)
             dqn_command = True
 
