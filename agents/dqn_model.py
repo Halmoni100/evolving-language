@@ -65,7 +65,7 @@ def build_dqn(lr, n_actions, input_dims, fc1_dims=32, fc2_dims=32):
 class Agent():
 
     def __init__(self, lr, gamma, n_actions, epsilon, batch_size,
-                input_dims, epsilon_dec=0.999, epsilon_end=0.01,
+                input_dims, epsilon_dec=0.999, epsilon_min=0.01,
                 mem_size=1000000, fname='dqn_model.h5'):
 
         self.action_space = [i for i in range(n_actions)]
@@ -73,7 +73,7 @@ class Agent():
         self.gamma = gamma
         self.epsilon = epsilon
         self.eps_dec = epsilon_dec
-        self.eps_min = epsilon_end
+        self.eps_min = epsilon_min
         self.batch_size = batch_size
         self.model_file = fname
 
