@@ -41,7 +41,7 @@ if __name__ == '__main__':
 
         env.seed(ep_i)
         obs_n = env.reset()
-        env.render()
+        # env.render()
 
         while not all(done_n):
             
