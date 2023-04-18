@@ -59,6 +59,7 @@ if __name__ == '__main__':
 
             for i in range(env.n_agents):
                 agent_list[i].learn()
+            env.render()
 
         with open('results.txt', 'a') as f:
             f.write('Episode #{} Reward: {}\n'.format(ep_i, ep_reward))

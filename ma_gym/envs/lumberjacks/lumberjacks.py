@@ -248,6 +248,7 @@ class Lumberjacks(gym.Env):
             mask: tuple of slices in extended coordinates.
         """
         agent_iter = np.ndenumerate(np.sum(self._agent_map[mask], axis=2))
+        print(mask)
         print(self._tree_map[mask].size)
         tree_iter = np.nditer(self._tree_map[mask])
         for (pos, n_a), n_t in zip(agent_iter, tree_iter):
@@ -286,8 +287,8 @@ class Lumberjacks(gym.Env):
     def _agent_view_generator(self, pos: Coordinates, view_range: Tuple[int, int]):
         """Yields position, number of agent and tree strength for cells in distance of `view_range` from `pos`.  """
         mask = (
-            slice(pos[0] - view_range[0], pos[0] + view_range[0] + 1),
-            slice(pos[1] - view_range[1], pos[1] + view_range[1] + 1),
+            slice(max(pos[0] - view_range[0], 0), pos[0] + view_range[0] + 1),
+            slice(max(pos[1] - view_range[1], 0), pos[1] + view_range[1] + 1),
         )
         yield from self._view_generator(mask)
 
