@@ -49,7 +49,7 @@ class ReplayBuffer():
         return states, actions, rewards, states_, terminal
 
 
-def build_dqn(lr, n_actions, input_dims, fc1_dims=32, fc2_dims=32):
+def build_dqn(lr, n_actions, input_dims, fc1_dims=16, fc2_dims=16):
 
     model = keras.Sequential([
         keras.layers.Dense(fc1_dims, activation='tanh'),
