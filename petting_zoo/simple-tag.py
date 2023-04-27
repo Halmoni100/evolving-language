@@ -1,10 +1,10 @@
 #from pettingzoo.mpe import simple_tag_v2
 from pettingzoo.mpe import simple_v2
-from agents.dqn_model import Agent
+from dqn_model import Agent
 
 
 #env = simple_tag_v2.env(render_mode='human')
-env = simple_v2.env(render_mode='human', max_cycles=200)
+env = simple_v2.env(max_cycles=200)
 
 env.reset()
 
@@ -24,7 +24,7 @@ for ep_i in range(episodes):
     ep_reward = 0
 
     #env.seed(ep_i)
-    env.reset(seed=ep_i)
+    env.reset()
     
 
     while not all(done_n): 
