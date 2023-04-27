@@ -71,7 +71,7 @@ class Lumberjacks(gym.Env):
     metadata = {'render.modes': ['human', 'rgb_array']}
 
     def __init__(self, grid_shape: Coordinates = (5, 5), n_agents: int = 2, n_trees: int = 12,
-                 agent_view: Tuple[int, int] = (1, 1), full_observable: bool = False,
+                 agent_view: Tuple[int, int] = (4, 4), full_observable: bool = False,
                  step_cost: float = -1, tree_cutdown_reward: float = 10, max_steps: int = 100):
         assert 0 < n_agents
         assert n_agents + n_trees <= np.prod(grid_shape)

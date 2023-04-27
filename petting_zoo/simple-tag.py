@@ -1,6 +1,8 @@
 #from pettingzoo.mpe import simple_tag_v2
+import sys
 from pettingzoo.mpe import simple_v2
-from agents.dqn_model import Agent
+from ..agents.dqn_model import Agent
+
 
 
 #env = simple_tag_v2.env(render_mode='human')

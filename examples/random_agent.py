@@ -8,19 +8,23 @@ from agents.dqn_model import Agent
 import gym
 
 from ma_gym.wrappers import Monitor
+from ma_gym.envs.lumberjacks import Lumberjacks
 
 if __name__ == '__main__':
 
     #env = gym.make(args.env)
-    env = gym.make('ma_gym:Lumberjacks-v1')
+    #env = gym.make('ma_gym:Lumberjacks-v1')
+    env = Lumberjacks(n_agents = 2, n_trees = 12,
+                 agent_view = (4, 4), full_observable = False,
+                 step_cost = -1, tree_cutdown_reward = 20, max_steps = 200)
     # env = Monitor(env, directory='recordings/' + args.env, force=True)
 
     lr = 0.001
-    episodes = 20000
+    episodes = 500
 
     agent_list = []
     for i in range(env.n_agents):
-        agent = Agent(gamma=0.998, epsilon=1.0, lr=lr, input_dims=env._obs_len * 2, n_actions=5, mem_size=50000, batch_size=64, epsilon_dec=1, epsilon_end=0.001, fname="dqn_model_23jul.h5")
+        agent = Agent(gamma=0.998, epsilon=1.0, lr=lr, input_dims=env._obs_len, n_actions=5, mem_size=50000, batch_size=64, epsilon_dec=0.99, epsilon_end=0.001, fname="dqn_model_23jul.h5")
         agent_list.append(agent)
 
 
