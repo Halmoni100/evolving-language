@@ -21,12 +21,13 @@ class Copier():
         self.mem_size = num_agents*ep_lookback
         self.state_memory = np.zeros((self.mem_size, obs_dim), dtype=np.float32)
         self.action_memory = np.zeros(self.mem_size, dtype=np.int32)
+        self.obs_dim = obs_dim
 
         self.mem_cntr = 0
 
         self.model = Sequential()
-        self.model.add(Dense(16, activation='relu', kernel_initializer='he_normal', input_shape=(obs_dim,)))
-        self.model.add(Dense(16, activation='relu', kernel_initializer='he_normal'))
+        self.model.add(Dense(16, activation='tanh', kernel_initializer='he_normal', input_shape=(obs_dim,)))
+        self.model.add(Dense(16, activation='tanh', kernel_initializer='he_normal'))
         self.model.add(Dense(num_actions, activation='softmax'))
         # compile the model
         self.model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
@@ -38,13 +39,21 @@ class Copier():
        self.mem_cntr += 1
 
     
-    def train_and_predict(self, new_obs):
+    def train(self):
        X_train = self.state_memory
        y_train = self.action_memory
        self.model.fit(X_train, y_train, epochs=150, batch_size=32, verbose=0)
-       yhat = self.model.predict([new_obs])
+       
+       return 
+    
+
+    def predict(self, new_obs):
+       new_obs = new_obs.reshape(1, self.obs_dim)
+       yhat = self.model.predict(new_obs)
        predicted_action = argmax(yhat)
+
        return predicted_action
+       
     
     
     
