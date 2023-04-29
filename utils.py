@@ -15,7 +15,21 @@ def plot_rewards(filepath):
     rewards.plot()
     plt.title("Rewards by episode")
     plt.show()
-
     return
 
+def plot_rewards_odds_only(filepath):
+    rewards = []
+    with open(filepath, "r") as file:
+        i = 0
+        for line in file:
+            if i % 2 == 0:
+                r = line.strip().split(":")[1]
+                rewards.append(float(r))
+            i += 1
+    rewards = pd.Series(rewards)
+    plt.figure()
+    rewards.plot()
+    plt.title("Rewards by episode")
+    plt.show()
+    return
 

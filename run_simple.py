@@ -71,7 +71,7 @@ def main():
                 done_n[agent_i] = termination or truncation
                 if termination or truncation: 
                     action_i = None
-                    break
+                    continue
                 else: 
                     action_i = agent_list[agent_i].choose_action(obs_i_withcopier)
                     action_i = action_i[0]
