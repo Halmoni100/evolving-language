@@ -46,7 +46,6 @@ class Copier():
        
        return 
     
-
     def predict(self, new_obs):
        new_obs = new_obs.reshape(1, self.obs_dim)
        yhat = self.model.predict(new_obs)
