@@ -2,9 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 
-fp = r'/Users/eleanorye/Documents/GitHub/evolving-language/results.txt'
-
 def plot_rewards(filepath):
+    env_name = filepath.split("results/")[1].split(".")[0]
     rewards = []
     with open(filepath, "r") as file:
         for line in file:
@@ -12,9 +11,12 @@ def plot_rewards(filepath):
             rewards.append(float(r))
     rewards = pd.Series(rewards)
     rewards.plot()
-    plt.title("Rewards by episode")
+    plt.title(env_name + " rewards by episode")
+    plt.xlabel("episode")
+    plt.ylabel("reward")
     plt.show()
-    return
+    return rewards
+
 
 def plot_rewards_compare(fp, fp_copier):
     env_name = fp.split("/results/")[1].split(".")[0]
@@ -36,6 +38,8 @@ def plot_rewards_compare(fp, fp_copier):
     rewards.plot(label="no copier")
     rewards_cp.plot(label="copier")
     plt.title(env_name + " rewards by episode")
+    plt.xlabel("episode")
+    plt.ylabel("reward")
     plt.legend()
     plt.show()
     return
