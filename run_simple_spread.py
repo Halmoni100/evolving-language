@@ -161,6 +161,10 @@ def main(NUM_EPISODES: int,
                 agent_list[agent_i].learn()
 
 
+        # At the end of each episode;
+        for agent_i in range(env.num_agents):
+            agent_list[agent_i].epsilon_decay()
+            
         #print('Episode #{} Reward: {}\n'.format(ep_i, ep_reward))
         with open(os.path.join(resultdir, result_filename), 'a') as f:
             f.write('Episode #{} Reward: {}\n'.format(ep_i, ep_reward))

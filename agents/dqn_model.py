@@ -118,6 +118,7 @@ class Agent():
 
         self.q_eval.train_on_batch(states, q_target)
 
+    def epsilon_decay(self):
         self.epsilon = self.epsilon * self.eps_dec if self.epsilon > \
                 self.eps_min else self.eps_min
 
