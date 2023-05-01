@@ -44,6 +44,7 @@ def plot_rewards_compare(fp, fp_copier):
     plt.show()
     return
 
+
 def plot_rewards_odds_only(filepath):
     rewards = []
     with open(filepath, "r") as file:
