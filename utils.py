@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
+plt.rcParams['figure.dpi'] = 300
+plt.rcParams['savefig.dpi'] = 300
 
 def plot_rewards(filepath):
     env_name = filepath.split("results/")[1].split(".")[0]
@@ -35,8 +37,8 @@ def plot_rewards_compare(fp, fp_copier):
     rewards_cp = pd.Series(rewards_cp)
 
     plt.figure()
-    rewards.plot(label="no copier")
-    rewards_cp.plot(label="copier")
+    rewards.plot(label="no copier", alpha=0.8)
+    rewards_cp.plot(label="copier", alpha=0.8)
     plt.title(env_name + " rewards by episode")
     plt.xlabel("episode")
     plt.ylabel("reward")
