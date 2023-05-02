@@ -6,6 +6,7 @@ for gpu in gpus:
 from tensorflow import keras
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.models import load_model
+from tensorflow.keras import regularizers
 from sklearn.utils import shuffle
 
 
@@ -52,8 +53,10 @@ class ReplayBuffer():
 def build_dqn(lr, n_actions, input_dims, fc1_dims=16, fc2_dims=16):
 
     model = keras.Sequential([
-        keras.layers.Dense(fc1_dims, activation='tanh'),
-        keras.layers.Dense(fc2_dims, activation='tanh'),
+        keras.layers.Dense(fc1_dims, kernel_regularizer=regularizers.l2(0.01)),
+        keras.layers.LeakyReLU(alpha=0.1),
+        keras.layers.Dense(fc2_dims, kernel_regularizer=regularizers.l2(0.01)),
+        keras.layers.LeakyReLU(alpha=0.1),
         keras.layers.Dense(n_actions, activation=None)])
 
     model.compile(optimizer=Adam(learning_rate=lr), loss='mean_squared_error')

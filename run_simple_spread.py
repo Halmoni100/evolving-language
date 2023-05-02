@@ -43,17 +43,20 @@ def main(NUM_EPISODES: int,
          MAX_CYCLES_PER_EP: int, 
          use_copier:bool, 
          continue_from_checkpoint:bool, 
+         lr:float=0.001,
+         batch_size:int=64,
          copier_ep_lookback=None,
          checkpoint_ep=None
          ):
 
     OBS_DIM = NUM_AGENTS * 6  ## for simple_spread
     version_name = format_name(ENV_NAME, use_copier, MAX_CYCLES_PER_EP, NUM_AGENTS, copier_ep_lookback)
-    result_filename = version_name + '.txt'
+    result_filename = version_name + '_batch'+str(batch_size)+'.txt'
     print("Ep rewards saving to {}".format(result_filename))
 
     agent_list = [] 
-    lr = 0.005
+    print("learning rate:", lr)
+    print("batch size:", batch_size)
     if use_copier:
         input_dims = OBS_DIM+COPIER_ACTION_EMBED_DIM
     else:
@@ -69,7 +72,7 @@ def main(NUM_EPISODES: int,
         env.reset()
         
         for i in range(env.num_agents): 
-            agent_dqn = Agent(gamma=0.998, epsilon=0.99, lr=lr, input_dims=input_dims, n_actions=NUM_ACTIONS, mem_size=5000, batch_size=64, epsilon_dec=0.97, epsilon_end=0.001, fname="dqn_model_23jul.h5")
+            agent_dqn = Agent(gamma=0.998, epsilon=0.99, lr=lr, input_dims=input_dims, n_actions=NUM_ACTIONS, mem_size=5000, batch_size=batch_size, epsilon_dec=0.97, epsilon_end=0.001, fname="dqn_model_23jul.h5")
             agent_list.append(agent_dqn)
         print("Agents initialized!")
 
@@ -92,7 +95,7 @@ def main(NUM_EPISODES: int,
         global_ep = package['ep_trained']+NUM_EPISODES
         
         for i in range(len(agent_paths)):
-            agent_dqn = Agent(gamma=0.998, epsilon=0.99, lr=lr, input_dims=input_dims, n_actions=NUM_ACTIONS, mem_size=5000, batch_size=64, epsilon_dec=0.97, epsilon_end=0.001, fname="dqn_model_23jul.h5")
+            agent_dqn = Agent(gamma=0.998, epsilon=0.99, lr=lr, input_dims=input_dims, n_actions=NUM_ACTIONS, mem_size=5000, batch_size=batch_size, epsilon_dec=0.97, epsilon_end=0.001, fname="dqn_model_23jul.h5")
             agent_dqn.q_eval = load_model(package['agent_paths'][i])
             agent_dqn.memory = package["agent_memories"][i]
             agent_list.append(agent_dqn)

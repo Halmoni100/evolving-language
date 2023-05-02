@@ -14,3 +14,4 @@ notes
 
 - fixed bugs:
     - epsilon should decay every episode and not every step
+    - batch_size (how many steps the agent samples to learn) too small (previously 64)

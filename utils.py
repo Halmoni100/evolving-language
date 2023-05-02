@@ -20,15 +20,15 @@ def plot_rewards(filepath):
     return rewards
 
 
-def plot_rewards_compare(fp, fp_copier):
-    env_name = fp.split("/results/")[1].split(".")[0]
+def plot_rewards_compare(fp1, fp2, label1, label2, title=None, footnote=None):
+    env_name = fp1.split("/results/")[1].split(".")[0]
     rewards = []
-    with open(fp, "r") as file:
+    with open(fp1, "r") as file:
         for line in file:
             r = line.strip().split(":")[1]
             rewards.append(float(r))
     rewards_cp = []
-    with open(fp_copier, "r") as file:
+    with open(fp2, "r") as file:
         for line in file:
             r = line.strip().split(":")[1]
             rewards_cp.append(float(r))
@@ -37,10 +37,15 @@ def plot_rewards_compare(fp, fp_copier):
     rewards_cp = pd.Series(rewards_cp)
 
     plt.figure()
-    rewards.plot(label="no copier", alpha=0.8)
-    rewards_cp.plot(label="copier", alpha=0.8)
-    plt.title(env_name + " rewards by episode")
+    rewards.plot(label=label1, alpha=0.8)
+    rewards_cp.plot(label=label2, alpha=0.8)
+    if title == None:
+        plt.title(env_name + " rewards by episode")
+    else:
+        plt.title(title + " rewards by episode")
     plt.xlabel("episode")
+    if footnote != None:
+        plt.text(0.5, -0.2, "note: "+footnote, ha='center', va='center', transform=plt.gca().transAxes)
     plt.ylabel("reward")
     plt.legend()
     plt.show()
