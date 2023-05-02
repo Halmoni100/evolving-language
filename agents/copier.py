@@ -12,7 +12,8 @@ from pandas import read_csv
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from tensorflow.keras import Sequential
-from tensorflow.keras.layers import Dense
+from tensorflow.keras.layers import Dense, LeakyReLU
+from tensorflow.keras import regularizers
 
 
 class Copier():
@@ -21,16 +22,18 @@ class Copier():
         self.mem_size = num_agents*ep_lookback
         self.state_memory = np.zeros((self.mem_size, obs_dim), dtype=np.float32)
         self.action_memory = np.zeros(self.mem_size, dtype=np.int32)
-        self.obs_dim = obs_dim
-
+        self.obs_dim = obs_dim 
         self.mem_cntr = 0
 
         self.model = Sequential()
-        self.model.add(Dense(16, activation='tanh', kernel_initializer='he_normal', input_shape=(obs_dim,)))
-        self.model.add(Dense(16, activation='tanh', kernel_initializer='he_normal'))
+        self.model.add(Dense(16, activation='tanh', kernel_initializer='he_normal', input_shape=(obs_dim,), kernel_regularizer=regularizers.l2(0.01)))
+        self.model.add(LeakyReLU(alpha=0.1)),
+        self.model.add(Dense(16, activation='tanh', kernel_initializer='he_normal'), kernel_regularizer=regularizers.l2(0.01))
+        self.model.add(LeakyReLU(alpha=0.1)),
         self.model.add(Dense(num_actions, activation='softmax'))
         # compile the model
         self.model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+
 
     def store_obs_action(self, state, action):
        index = self.mem_cntr % self.mem_size
@@ -38,7 +41,7 @@ class Copier():
        self.action_memory[index] = action
        self.mem_cntr += 1
 
-    
+   
     def train(self):
        X_train = self.state_memory
        y_train = self.action_memory
@@ -46,6 +49,7 @@ class Copier():
        
        return 
     
+
     def predict(self, new_obs):
        new_obs = new_obs.reshape(1, self.obs_dim)
        yhat = self.model.predict(new_obs)

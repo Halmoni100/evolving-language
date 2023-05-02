@@ -4,9 +4,7 @@ notes
 
 - DQN is able to learn; leaky relu with L2 regularization converges a lot faster and stabler than tanh
 - learning rate set to 0.001 and batch_size 64 (for agent replay buffer)
-
-- maxcycle param needs tuning? 
-- reduce overfitting/policy oscillation: try different architecture/activation/learning rate
+- remove agent_i itself from copier buffer? i.e. the copier for each agent does not involve itself
 
 - plots to generate:
     - no copier vs with copier (tune lookback param?)

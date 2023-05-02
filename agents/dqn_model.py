@@ -57,7 +57,7 @@ def build_dqn(lr, n_actions, input_dims, fc1_dims=16, fc2_dims=16):
         keras.layers.LeakyReLU(alpha=0.1),
         keras.layers.Dense(fc2_dims, kernel_regularizer=regularizers.l2(0.01)),
         keras.layers.LeakyReLU(alpha=0.1),
-        keras.layers.Dense(n_actions, activation=None)])
+        keras.layers.Dense(n_actions, activation='softmax')])
 
     model.compile(optimizer=Adam(learning_rate=lr), loss='mean_squared_error')
 
@@ -121,10 +121,10 @@ class Agent():
 
         self.q_eval.train_on_batch(states, q_target)
 
+
     def epsilon_decay(self):
         self.epsilon = self.epsilon * self.eps_dec if self.epsilon > \
                 self.eps_min else self.eps_min
-
 
 
     def save_model(self):
