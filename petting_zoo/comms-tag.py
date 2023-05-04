@@ -40,32 +40,36 @@ for i in range(env.num_agents):
 
 done_n = None
 
+numAgents = env.num_agents
+
 for ep_i in range(episodes): 
 
-    #if done_n != None:
-    #    print("done_n at start: ", done_n)
-    done_n = [False for _ in range(env.num_agents)]
+    if done_n != None:
+        print("done_n at start: ", done_n)
+    print("env num agents: ", numAgents)
+    done_n = [False for _ in range(numAgents)]
     #done_n = [False for _ in range(2)]
-    #print("done_n at start2: ", done_n)
-    old_obs = [None for _ in range(env.num_agents)] 
-    old_action = [None for _ in range(env.num_agents)] 
+    print("done_n at start2: ", done_n)
+    old_obs = [None for _ in range(numAgents)] 
+    old_action = [None for _ in range(numAgents)] 
     ep_reward = 0
 
     #env.seed(ep_i)
     env.reset(seed=ep_i)
+    print("done_n at start3: ", done_n)
     
 
     step = 0
-    #print("ep: ", ep_i)
+    print("ep: ", ep_i)
     #print("num agenmts: ", env.num_agents)
-    #print(done_n)
+    print(done_n)
     while not all(done_n): 
 
         #if step % 10 == 0:
         #    print("step: ", step)
         #step += 1
 	
-        for agent_i in range(env.num_agents):
+        for agent_i in range(numAgents):
             obs_i, reward_i, termination, truncation, info = env.last() 
 
             #print("agent_i: ", agent_i)
@@ -92,7 +96,7 @@ for ep_i in range(episodes):
             #new_obs_i, reward_i, termination, truncation, info = env.last() 
             #print("new_obs_i.shape: ", new_obs_i.shape)
 
-    #print("done_n at end: ", done_n)
+    print("done_n at end: ", done_n)
     done_n = [False for _ in range(2)]
     print('Episode #{} Reward: {}\n'.format(ep_i, ep_reward))
     with open('results.txt', 'a') as f:
