@@ -1,6 +1,6 @@
 import numpy as np
 import os
-from pettingzoo.mpe import simple_spread_v2, simple_v2
+from pettingzoo.mpe import simple_spread_v2, simple_v2, simple_world_comm_v2
 from agents.dqn_model import Agent
 from agents.copier import Copier
 from utils import plot_rewards
@@ -17,7 +17,7 @@ https://github.com/Farama-Foundation/PettingZoo/blob/master/pettingzoo/mpe/simpl
 ENV_NAME = 'comms_spread'
 NUM_ACTIONS = 5
 parentdir = os.getcwd()
-parentdir = r'/Users/eleanorye/Documents/GitHub/evolving-language/'
+#parentdir = r'/Users/eleanorye/Documents/GitHub/evolving-language/'
 resultdir = os.path.join(parentdir, 'results')
 checkpointsdir = os.path.join(parentdir, 'checkpoints', ENV_NAME)
 
@@ -51,6 +51,7 @@ def main(NUM_EPISODES: int,
          checkpoint_ep=None
          ):
 
+    num_food = 1
     # num_agents is num adversaries, good agents are essentially static objects
     OBS_DIM = 4 * num_food * 2 + NUM_AGENTS * 2 + 6
     #OBS_DIM = NUM_AGENTS * 6  ## for simple_spread
@@ -145,7 +146,7 @@ def main(NUM_EPISODES: int,
                     new_obs_i_withcopier = np.concatenate((obs_i, copier_prediction))
                     agent_list[agent_i].store_transition(old_obs_with_copier[agent_i], old_action[agent_i], reward_i, new_obs_i_withcopier, done_n[i])
                 else:
-                    agent_list[agent_i].store_transition(old_obs[agent_i, old_action[agent_i, reward_i, obs_i, done_n[i])
+                    agent_list[agent_i].store_transition(old_obs[agent_i], old_action[agent_i], reward_i, obs_i, done_n[i])
 
                 agent_list[agent_i].learn()
                 ep_reward += reward_i
