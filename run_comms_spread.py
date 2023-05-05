@@ -19,6 +19,7 @@ NUM_ACTIONS = 5
 parentdir = os.getcwd()
 #parentdir = r'/Users/eleanorye/Documents/GitHub/evolving-language/'
 resultdir = os.path.join(parentdir, 'results2')
+print("resultdir: ", resultdir)
 checkpointsdir = os.path.join(parentdir, 'checkpoints2', ENV_NAME)
 
 
@@ -185,13 +186,18 @@ def main(NUM_EPISODES: int,
                 if agent_i != 0 and use_copier:
                     copier.store_obs_action(obs_i, action_i)
 
-            env.step(0) # this is for the stationary target, step without action
+            obs_i, reward_i, termination, truncation, info = env.last()
+            
+            if termination or truncation: 
+                env.step(None) # this is for the stationary target, step without action
+            else:
+                env.step(0) # this is for the stationary target, step without action
 
         # At the end of each episode;
         for agent_i in range(NUM_AGENTS):
             agent_list[agent_i].epsilon_decay()
             
-        #print('Episode #{} Reward: {}\n'.format(ep_i, ep_reward))
+        print('Episode #{} Reward: {}\n'.format(ep_i, ep_reward))
         with open(os.path.join(resultdir, result_filename), 'a') as f:
             f.write('Episode #{} Reward: {}\n'.format(ep_i, ep_reward))
 
