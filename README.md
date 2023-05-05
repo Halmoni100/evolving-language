@@ -11,7 +11,6 @@
 
 
 - TODO:
-    - add entropy metric in addition to reward
     - remove agent_i itself from copier buffer - i.e. the copier for each agent does not involve itself
     - vary agent's learning scheme: learn from 64 steps after every step, or learn from the entire buffer after every episode
 
@@ -21,7 +20,8 @@
     - learning rate set to 0.001 and batch_size 64 (for agent replay buffer)
 
 
-- fixed bugs:
+- fixed:
     - epsilon should decay every episode and not every step
     - convergence: switched to leaky relu with L2, learning rate 0.001
+    - added entropy metric in addition to reward
 

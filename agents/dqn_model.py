@@ -8,6 +8,7 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.models import load_model
 from tensorflow.keras import regularizers
 from sklearn.utils import shuffle
+from scipy.stats import entropy
 
 
 class ReplayBuffer():
@@ -67,10 +68,11 @@ def build_dqn(lr, n_actions, input_dims, fc1_dims=16, fc2_dims=16):
 
 class Agent():
 
-    def __init__(self, lr, gamma, n_actions, epsilon, batch_size,
+    def __init__(self, id, lr, gamma, n_actions, epsilon, batch_size,
                 input_dims, epsilon_dec=0.999, epsilon_end=0.01,
                 mem_size=1000000, fname='dqn_model.h5'):
-
+        
+        self.id = id
         self.action_space = [i for i in range(n_actions)]
 
         self.gamma = gamma
@@ -89,24 +91,23 @@ class Agent():
 
 
     def choose_action(self, observation):
-
+        prob = self.q_eval.predict(np.array([observation]))
+        H = entropy(np.squeeze(prob))
+        
         if np.random.random() < self.epsilon:
             action = np.random.choice(self.action_space)
             dqn_command = False
         else:
-            state = np.array([observation])
-            actions = self.q_eval.predict(state)
-            action = np.argmax(actions)
+            action = np.argmax(prob)
             dqn_command = True
 
-        return action, dqn_command
+        return action, dqn_command, H
 
 
     def learn(self):
 
         if self.memory.mem_cntr < self.batch_size:
             return
-
         states, actions, rewards, states_, dones = \
                 self.memory.sample_buffer(self.batch_size)
 

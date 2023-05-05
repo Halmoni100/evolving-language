@@ -28,7 +28,7 @@ class Copier():
         self.model = Sequential()
         self.model.add(Dense(16, activation='tanh', kernel_initializer='he_normal', input_shape=(obs_dim,), kernel_regularizer=regularizers.l2(0.01)))
         self.model.add(LeakyReLU(alpha=0.1)),
-        self.model.add(Dense(16, activation='tanh', kernel_initializer='he_normal'), kernel_regularizer=regularizers.l2(0.01))
+        self.model.add(Dense(16, activation='tanh', kernel_initializer='he_normal', kernel_regularizer=regularizers.l2(0.01)))
         self.model.add(LeakyReLU(alpha=0.1)),
         self.model.add(Dense(num_actions, activation='softmax'))
         # compile the model
