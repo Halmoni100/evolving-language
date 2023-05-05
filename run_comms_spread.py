@@ -53,7 +53,7 @@ def main(NUM_EPISODES: int,
 
     num_food = 1
     # num_agents is num adversaries, good agents are essentially static objects
-    OBS_DIM = 4 * num_food * 2 + NUM_AGENTS * 2 + 6
+    OBS_DIM = 4 * num_food * 2 + NUM_AGENTS * 2 + 4
     #OBS_DIM = NUM_AGENTS * 6  ## for simple_spread
     version_name = format_name(ENV_NAME, use_copier, MAX_CYCLES_PER_EP, NUM_AGENTS, copier_ep_lookback)
     result_filename = version_name + '_batch'+str(batch_size)+'.txt'
@@ -83,10 +83,12 @@ def main(NUM_EPISODES: int,
         for i in range(NUM_AGENTS): 
 
             cur_num_actions = 5
+            cur_input_dims = input_dims
             if i == 0: 
+                cur_input_dims = input_dims - COPIER_ACTION_EMBED_DIM
                 cur_num_actions = 20 # leader adversary has extra action
 
-            agent_dqn = Agent(gamma=0.998, epsilon=0.99, lr=lr, input_dims=input_dims, n_actions=cur_num_actions, mem_size=5000, batch_size=batch_size, epsilon_dec=0.97, epsilon_end=0.001, fname="dqn_model_23jul.h5")
+            agent_dqn = Agent(id=i, gamma=0.998, epsilon=0.99, lr=lr, input_dims=cur_input_dims, n_actions=cur_num_actions, mem_size=5000, batch_size=batch_size, epsilon_dec=0.97, epsilon_end=0.001, fname="dqn_model_23jul.h5")
             agent_list.append(agent_dqn)
         print("Agents initialized!")
 
@@ -140,16 +142,20 @@ def main(NUM_EPISODES: int,
                 obs_i, reward_i, termination, truncation, info = env.last()
 
                 # [COPIER] PREDICT FOR NEW STATE TO STORE INTO AGENT
-                if agent_i != 0 and use_copier:
-                    copier_prediction = copier.predict(old_obs)
-                    copier_prediction = ACTION2EMBEDDING[copier_prediction]
-                    new_obs_i_withcopier = np.concatenate((obs_i, copier_prediction))
-                    agent_list[agent_i].store_transition(old_obs_with_copier[agent_i], old_action[agent_i], reward_i, new_obs_i_withcopier, done_n[i])
-                else:
-                    agent_list[agent_i].store_transition(old_obs[agent_i], old_action[agent_i], reward_i, obs_i, done_n[i])
 
-                agent_list[agent_i].learn()
-                ep_reward += reward_i
+                print("agent i: ", agent_i)
+                print("obs_i shape: ", obs_i.shape)
+                if old_action[agent_i] != None: 
+                    if agent_i != 0 and use_copier:
+                        copier_prediction = copier.predict(old_obs[agent_i])
+                        copier_prediction = ACTION2EMBEDDING[copier_prediction]
+                        new_obs_i_withcopier = np.concatenate((obs_i, copier_prediction))
+                        agent_list[agent_i].store_transition(old_obs_with_copier[agent_i], old_action[agent_i], reward_i, new_obs_i_withcopier, done_n[i])
+                    else: 
+                        agent_list[agent_i].store_transition(old_obs[agent_i], old_action[agent_i], reward_i, obs_i, done_n[i])
+
+                    agent_list[agent_i].learn()
+                    ep_reward += reward_i
 
 
                 # [COPIER] GET COPIER PREDICTION + EMBED
@@ -176,9 +182,10 @@ def main(NUM_EPISODES: int,
                 env.step(action_i)
 
                 # [COPIER] STORE OBS_I AND ACTION_I INTO COPIER BUFFER
-                if use_copier:
+                if agent_i != 0 and use_copier:
                     copier.store_obs_action(obs_i, action_i)
 
+            env.step(0) # this is for the stationary target, step without action
 
         # At the end of each episode;
         for agent_i in range(NUM_AGENTS):
