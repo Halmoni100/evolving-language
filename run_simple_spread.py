@@ -51,7 +51,7 @@ def main(NUM_EPISODES: int,
 
     OBS_DIM = NUM_AGENTS * 6  ## for simple_spread
     version_name = format_name(ENV_NAME, use_copier, MAX_CYCLES_PER_EP, NUM_AGENTS, copier_ep_lookback)
-    result_filename = version_name + '_batch'+str(batch_size)+'.txt'
+    result_filename = version_name + '_eptrain.txt'
     print("Ep rewards saving to {}".format(result_filename))
 
     agent_list = [] 
@@ -72,7 +72,7 @@ def main(NUM_EPISODES: int,
         env.reset()
         
         for i in range(env.num_agents): 
-            agent_dqn = Agent(gamma=0.998, epsilon=0.99, lr=lr, input_dims=input_dims, n_actions=NUM_ACTIONS, mem_size=5000, batch_size=batch_size, epsilon_dec=0.97, epsilon_end=0.001, fname="dqn_model_23jul.h5")
+            agent_dqn = Agent(id=i, gamma=0.998, epsilon=0.99, lr=lr, input_dims=input_dims, n_actions=NUM_ACTIONS, mem_size=5000, batch_size=batch_size, epsilon_dec=0.97, epsilon_end=0.001, fname="dqn_model_23jul.h5")
             agent_list.append(agent_dqn)
         print("Agents initialized!")
 
@@ -95,31 +95,41 @@ def main(NUM_EPISODES: int,
         global_ep = package['ep_trained']+NUM_EPISODES
         
         for i in range(len(agent_paths)):
-            agent_dqn = Agent(gamma=0.998, epsilon=0.99, lr=lr, input_dims=input_dims, n_actions=NUM_ACTIONS, mem_size=5000, batch_size=batch_size, epsilon_dec=0.97, epsilon_end=0.001, fname="dqn_model_23jul.h5")
+            agent_dqn = package['agents'][i]
             agent_dqn.q_eval = load_model(package['agent_paths'][i])
             agent_dqn.memory = package["agent_memories"][i]
             agent_list.append(agent_dqn)
         if use_copier:
             copier.model = load_model(copier_nn_path)
 
+    eps_until_learn_agt = 5
+    eps_until_learn_copier = 30
+    ep_count = -1
 
     for ep_i in eps_to_train: 
+        ep_count += 1
         done_n = [False for _ in range(env.num_agents)]
         ep_reward = 0 
         env.reset(seed=ep_i)
+        ep_entropy = np.full((NUM_AGENTS, MAX_CYCLES_PER_EP), np.nan)
 
         # [COPIER] TRAIN COPIER AT THE START OF EACH EPISODE
-        if use_copier:
+        if use_copier and ep_count > eps_until_learn_copier:
             copier.train()
         
+        cycle_i = 0
         while not all(done_n): 
 
             for agent_i in range(env.num_agents):
                 obs_i, reward_i, termination, truncation, info = env.last()
+                agt = agent_list[agent_i]
 
                 # [COPIER] GET COPIER PREDICTION + EMBED
                 if use_copier:
-                    copier_prediction = copier.predict(obs_i)
+                    if ep_count > eps_until_learn_copier:
+                        copier_prediction = copier.predict(obs_i)
+                    else:
+                        copier_prediction = 0
                     copier_prediction = ACTION2EMBEDDING[copier_prediction]
                     # [COPIER] APPEND COPIER PREDICTION TO OBS_I
                     obs_i_withcopier = np.concatenate((obs_i, copier_prediction))
@@ -130,18 +140,17 @@ def main(NUM_EPISODES: int,
                     continue
                 else: 
                     if use_copier:
-                        action_i = agent_list[agent_i].choose_action(obs_i_withcopier)
+                        action_i, dqn_command, entropy = agt.choose_action(obs_i_withcopier)
                     else:
-                        action_i = agent_list[agent_i].choose_action(obs_i)
-
-                    action_i = action_i[0]
+                        action_i, dqn_command, entropy = agt.choose_action(obs_i)
+                    ep_entropy[agent_i][cycle_i] = entropy
 
                 #print(action_i)
                 env.step(action_i)
 
 
                 # [COPIER] STORE OBS_I AND ACTION_I INTO COPIER BUFFER
-                if use_copier:
+                if use_copier and ep_count > eps_until_learn_copier:
                     copier.store_obs_action(obs_i, action_i)
 
                 new_obs_i, reward_i, termination, truncation, info = env.last() 
@@ -150,27 +159,36 @@ def main(NUM_EPISODES: int,
 
                 # [COPIER] PREDICT FOR NEW STATE TO STORE INTO AGENT
                 if use_copier:
-                    copier_prediction = copier.predict(new_obs_i)
+                    if ep_count > eps_until_learn_copier:
+                        copier_prediction = copier.predict(new_obs_i)
+                    else:
+                        copier_prediction = 0
                     copier_prediction = ACTION2EMBEDDING[copier_prediction]
                     new_obs_i_withcopier = np.concatenate((new_obs_i, copier_prediction))
 
                 ep_reward += reward_i
                 #print(obs_i)
                 if use_copier:
-                    agent_list[agent_i].store_transition(obs_i_withcopier, action_i, reward_i, new_obs_i_withcopier, done_n[i])
+                    agt.store_transition(obs_i_withcopier, action_i, reward_i, new_obs_i_withcopier, done_n[i])
                 else:
-                    agent_list[agent_i].store_transition(obs_i, action_i, reward_i, new_obs_i, done_n[i])
+                    agt.store_transition(obs_i, action_i, reward_i, new_obs_i, done_n[i])
 
-                agent_list[agent_i].learn()
+                if ep_count > eps_until_learn_agt:
+                    agt.learn()
+
+            # At the end of each cycle (frame):
+            cycle_i += 1
 
 
-        # At the end of each episode;
+        # At the end of each episode:
+        entropy_mean = np.nanmean(ep_entropy)
+        entropy_std = np.nanstd(ep_entropy)
         for agent_i in range(env.num_agents):
-            agent_list[agent_i].epsilon_decay()
+            agt.epsilon_decay()
             
         #print('Episode #{} Reward: {}\n'.format(ep_i, ep_reward))
         with open(os.path.join(resultdir, result_filename), 'a') as f:
-            f.write('Episode #{} Reward: {}\n'.format(ep_i, ep_reward))
+            f.write('Episode #{} Reward: {}, Entropy mean: {}, Entropy std: {}\n'.format(ep_i, ep_reward, entropy_mean, entropy_std))
 
 
     # Save training checkpoint
@@ -178,12 +196,16 @@ def main(NUM_EPISODES: int,
     if not os.path.isdir(version_save_dir):
         os.mkdir(version_save_dir)
 
+    agt_ls = []
     agent_memories = []
     agent_paths = dict(zip(range(NUM_AGENTS),[os.path.join(version_save_dir,'agent'+str(i)) for i in range(NUM_AGENTS)]))
     for i in range(len(agent_list)):
         agt = agent_list[i]
         agt.q_eval.save(agent_paths[i])
         agent_memories.append(agt.memory)
+        agt.q_eval = None
+        agt.memory = None
+        agt_ls.append(agt)
 
     if use_copier:
         copier_nn_path = os.path.join(version_save_dir,'copier_nn')
@@ -197,6 +219,7 @@ def main(NUM_EPISODES: int,
     save_package = {
         "version_name": version_name,
         "env": env,
+        "agents": agt_ls,
         "agent_paths": agent_paths,
         "agent_memories": agent_memories,
         "copier": copier_to_save,
@@ -206,7 +229,7 @@ def main(NUM_EPISODES: int,
 
     dump_checkpoint(save_package, version_name)
     env.close()
-    plot_rewards(os.path.join(resultdir, result_filename))
+    #plot_rewards(os.path.join(resultdir, result_filename))
     
 
 def load_checkpoint(version_name, ep_trained):
