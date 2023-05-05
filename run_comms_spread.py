@@ -18,8 +18,8 @@ ENV_NAME = 'comms_spread'
 NUM_ACTIONS = 5
 parentdir = os.getcwd()
 #parentdir = r'/Users/eleanorye/Documents/GitHub/evolving-language/'
-resultdir = os.path.join(parentdir, 'results')
-checkpointsdir = os.path.join(parentdir, 'checkpoints', ENV_NAME)
+resultdir = os.path.join(parentdir, 'results2')
+checkpointsdir = os.path.join(parentdir, 'checkpoints2', ENV_NAME)
 
 
 ACTION2EMBEDDING = {
@@ -134,8 +134,8 @@ def main(NUM_EPISODES: int,
             copier.train()
         
         while not all(done_n): 
-            if step % 10 == 0:
-                print("step: ", step)
+            #if step % 10 == 0:
+            #    print("step: ", step)
             step += 1
 
             for agent_i in range(NUM_AGENTS):
@@ -143,8 +143,8 @@ def main(NUM_EPISODES: int,
 
                 # [COPIER] PREDICT FOR NEW STATE TO STORE INTO AGENT
 
-                print("agent i: ", agent_i)
-                print("obs_i shape: ", obs_i.shape)
+                #print("agent i: ", agent_i)
+                #print("obs_i shape: ", obs_i.shape)
                 if old_action[agent_i] != None: 
                     if agent_i != 0 and use_copier:
                         copier_prediction = copier.predict(old_obs[agent_i])
