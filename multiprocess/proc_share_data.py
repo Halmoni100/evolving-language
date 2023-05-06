@@ -119,6 +119,10 @@ def get_generation_data(generation, total_num_agents_per_generation):
 
     return observations, actions
 
+def delete_generation_data(generation, total_num_agents_per_generation):
+    for agent_idx in range(total_num_agents_per_generation):
+        pass
+
 def create_copier_buffer(observations, actions, total_num_agents_per_generation):
     total_timepoints = 0
     for agent_idx in range(total_num_agents_per_generation):

@@ -1,3 +1,10 @@
+copier_config:
+  activation: relu
+  obs_dim: 500
+  l2_alpha: 0.01
+  width: 16
+  epochs: 150
+  batch_size: 32
 dqn_config:
   gamma: 0.998
   epsilon: 0.99
