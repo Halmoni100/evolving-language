@@ -4,7 +4,7 @@ import pandas as pd
 plt.rcParams['figure.dpi'] = 300
 plt.rcParams['savefig.dpi'] = 300
 
-def plot_rewards(filepath, has_entropy:bool):
+def plot_rewards(filepath, has_entropy:bool, title=None, footnote=None):
     env_name = filepath.split("results/")[1].split(".")[0]
     rewards = []
     entropy = []
@@ -22,14 +22,19 @@ def plot_rewards(filepath, has_entropy:bool):
     ax1.plot(rewards.index, rewards, color='tab:blue')
     ax1.tick_params(axis='y', labelcolor='tab:blue')
     ax1.set_ylabel('reward', color='tab:blue')
+    ax1.set_xlabel("episode")
 
     ax2 = ax1.twinx()
     ax2.plot(entropy.index, entropy, color='tab:red')
     ax2.set_ylabel('entropy', color='tab:red')
     ax2.tick_params(axis='y', labelcolor='tab:red')
     fig.tight_layout() 
-    plt.title(env_name + " rewards by episode")
-    plt.xlabel("episode")
+    if title == None:
+        plt.title(env_name + " rewards by episode")
+    else:
+        plt.title(title + " rewards by episode")
+    if footnote != None:
+        plt.text(0.5, -0.2, "note: "+footnote, ha='center', va='center', transform=plt.gca().transAxes)
     plt.show()
     return rewards
 

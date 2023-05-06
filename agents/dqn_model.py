@@ -9,6 +9,7 @@ from tensorflow.keras.models import load_model
 from tensorflow.keras import regularizers
 from sklearn.utils import shuffle
 from scipy.stats import entropy
+from scipy.special import softmax
 
 
 class ReplayBuffer():
@@ -58,7 +59,7 @@ def build_dqn(lr, n_actions, input_dims, fc1_dims=16, fc2_dims=16):
         keras.layers.LeakyReLU(alpha=0.1),
         keras.layers.Dense(fc2_dims, kernel_regularizer=regularizers.l2(0.01)),
         keras.layers.LeakyReLU(alpha=0.1),
-        keras.layers.Dense(n_actions, activation='softmax')])
+        keras.layers.Dense(n_actions, activation=None)])
 
     model.compile(optimizer=Adam(learning_rate=lr), loss='mean_squared_error')
 
@@ -91,14 +92,15 @@ class Agent():
 
 
     def choose_action(self, observation):
-        prob = self.q_eval.predict(np.array([observation]))
+        out = self.q_eval.predict(np.array([observation]))
+        prob = softmax(out)
         H = entropy(np.squeeze(prob))
         
         if np.random.random() < self.epsilon:
             action = np.random.choice(self.action_space)
             dqn_command = False
         else:
-            action = np.argmax(prob)
+            action = np.argmax(out)
             dqn_command = True
 
         return action, dqn_command, H

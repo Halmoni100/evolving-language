@@ -30,7 +30,7 @@ class Copier():
         self.model.add(LeakyReLU(alpha=0.1)),
         self.model.add(Dense(16, activation='tanh', kernel_initializer='he_normal', kernel_regularizer=regularizers.l2(0.01)))
         self.model.add(LeakyReLU(alpha=0.1)),
-        self.model.add(Dense(num_actions, activation='softmax'))
+        self.model.add(Dense(num_actions, activation=None))
         # compile the model
         self.model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 

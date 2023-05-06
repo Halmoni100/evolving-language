@@ -122,7 +122,6 @@ def main(NUM_EPISODES: int,
 
             for agent_i in range(env.num_agents):
                 obs_i, reward_i, termination, truncation, info = env.last()
-                agt = agent_list[agent_i]
 
                 # [COPIER] GET COPIER PREDICTION + EMBED
                 if use_copier:
@@ -140,9 +139,9 @@ def main(NUM_EPISODES: int,
                     continue
                 else: 
                     if use_copier:
-                        action_i, dqn_command, entropy = agt.choose_action(obs_i_withcopier)
+                        action_i, dqn_command, entropy = agent_list[agent_i].choose_action(obs_i_withcopier)
                     else:
-                        action_i, dqn_command, entropy = agt.choose_action(obs_i)
+                        action_i, dqn_command, entropy = agent_list[agent_i].choose_action(obs_i)
                     ep_entropy[agent_i][cycle_i] = entropy
 
                 #print(action_i)
@@ -169,12 +168,12 @@ def main(NUM_EPISODES: int,
                 ep_reward += reward_i
                 #print(obs_i)
                 if use_copier:
-                    agt.store_transition(obs_i_withcopier, action_i, reward_i, new_obs_i_withcopier, done_n[i])
+                    agent_list[agent_i].store_transition(obs_i_withcopier, action_i, reward_i, new_obs_i_withcopier, done_n[i])
                 else:
-                    agt.store_transition(obs_i, action_i, reward_i, new_obs_i, done_n[i])
+                    agent_list[agent_i].store_transition(obs_i, action_i, reward_i, new_obs_i, done_n[i])
 
                 if ep_count > eps_until_learn_agt:
-                    agt.learn()
+                    agent_list[agent_i].learn()
 
             # At the end of each cycle (frame):
             cycle_i += 1
@@ -183,7 +182,7 @@ def main(NUM_EPISODES: int,
         # At the end of each episode:
         entropy_mean = np.nanmean(ep_entropy)
         entropy_std = np.nanstd(ep_entropy)
-        for agent_i in range(env.num_agents):
+        for agent_i in range(NUM_AGENTS):
             agent_list[agent_i].epsilon_decay()
             
         #print('Episode #{} Reward: {}\n'.format(ep_i, ep_reward))
