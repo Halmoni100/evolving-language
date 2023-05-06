@@ -15,7 +15,8 @@ https://github.com/Farama-Foundation/PettingZoo/blob/master/pettingzoo/mpe/simpl
 
 ENV_NAME = 'simple_spread'
 NUM_ACTIONS = 5
-parentdir = r'/Users/eleanorye/Documents/GitHub/evolving-language/'
+#parentdir = r'/Users/eleanorye/Documents/GitHub/evolving-language/'
+parentdir = r'/'
 resultdir = os.path.join(parentdir, 'results')
 checkpointsdir = os.path.join(parentdir, 'checkpoints', ENV_NAME)
 
