@@ -51,7 +51,7 @@ def main(NUM_EPISODES: int,
 
     OBS_DIM = NUM_AGENTS * 6  ## for simple_spread
     version_name = format_name(ENV_NAME, use_copier, MAX_CYCLES_PER_EP, NUM_AGENTS, copier_ep_lookback)
-    result_filename = version_name + '_eptrain.txt'
+    result_filename = version_name + '.txt'
     print("Ep rewards saving to {}".format(result_filename))
 
     agent_list = [] 
@@ -184,7 +184,7 @@ def main(NUM_EPISODES: int,
         entropy_mean = np.nanmean(ep_entropy)
         entropy_std = np.nanstd(ep_entropy)
         for agent_i in range(env.num_agents):
-            agt.epsilon_decay()
+            agent_list[agent_i].epsilon_decay()
             
         #print('Episode #{} Reward: {}\n'.format(ep_i, ep_reward))
         with open(os.path.join(resultdir, result_filename), 'a') as f:
