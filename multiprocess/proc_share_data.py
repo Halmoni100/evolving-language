@@ -2,6 +2,8 @@
 
 from multiprocessing import Process
 
+import tensorflow as tf
+
 def main():
     pass
 
