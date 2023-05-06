@@ -42,10 +42,10 @@ class Copier():
        self.mem_cntr += 1
 
    
-    def train(self):
+    def train(self, epochs):
        X_train = self.state_memory
        y_train = self.action_memory
-       self.model.fit(X_train, y_train, epochs=150, batch_size=32, verbose=0)
+       self.model.fit(X_train, y_train, epochs=epochs, batch_size=32, verbose=0)
        
        return 
     

@@ -105,6 +105,7 @@ def main(NUM_EPISODES: int,
 
     eps_until_learn_agt = 5
     eps_until_learn_copier = 30
+    copier_train_epochs = 100
     ep_count = -1
 
     for ep_i in eps_to_train: 
@@ -116,7 +117,7 @@ def main(NUM_EPISODES: int,
 
         # [COPIER] TRAIN COPIER AT THE START OF EACH EPISODE
         if use_copier and ep_count > eps_until_learn_copier:
-            copier.train()
+            copier.train(epochs=copier_train_epochs)
         
         cycle_i = 0
         while not all(done_n): 
