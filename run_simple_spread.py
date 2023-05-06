@@ -104,8 +104,8 @@ def main(NUM_EPISODES: int,
             copier.model = load_model(copier_nn_path)
 
     eps_until_learn_agt = 5
-    eps_until_learn_copier = 30
-    copier_train_epochs = 100
+    eps_until_learn_copier = 5
+    copier_train_epochs = 80
     ep_count = -1
 
     for ep_i in eps_to_train: 
