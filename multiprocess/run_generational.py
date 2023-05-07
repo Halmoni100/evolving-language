@@ -120,7 +120,6 @@ def train_agent(idx, dqn_config, dqn_misc, num_episodes, copier, buffer_filename
         if num_agents_done == num_agents_per_generation: 
             print("generation done!")
             g_generation_done.notify()
-        g_sync_done.wait()
 
 def get_generation_data(generation, num_agents_per_generation):
     observations = dict()
@@ -208,6 +207,7 @@ def synchronize(config):
         delete_generation_data(generation, num_agents_per_generation)
         with g_sync_lock:
             write_num_agents_done(0)
+            print("sync done")
             g_sync_done.notify_all()
 
 
@@ -223,8 +223,8 @@ def agent_process(agent_idx, config):
             copier = Copier(config["copier"])
             copier.dqn_model = keras.models.load_model(g_copier_filepath)
         train_agent(agent_idx, config["dqn_config"], config["dqn_misc"], num_episodes, copier, prefix, num_agents_per_generation, taxi_observation_transform)
-        with g_generation_done:
-            g_generation_done.wait()
+        with g_sync_lock:
+            g_sync_done.wait()
 
 def main():
     os.makedirs(g_tmp_dir, exist_ok=True)

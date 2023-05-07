@@ -32,7 +32,7 @@ class Copier():
        self.model.fit(X_train, y_train, epochs=self.epochs, batch_size=self.batch_size)
 
     def predict(self, new_obs):
-       new_obs = new_obs.reshape(1, self.obs_dim)
+       new_obs = np.expand_dims(new_obs, 0)
        yhat = self.model.predict(new_obs)
        predicted_action = np.argmax(yhat)
 
