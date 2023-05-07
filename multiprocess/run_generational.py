@@ -45,11 +45,34 @@ def get_copier_embedding(copier, observation, num_actions):
         copier_embedding = keras.utils.to_categorical(copier_prediction, num_classes=num_actions)
     return copier_embedding
 
-def train_agent(idx, dqn_config, num_episodes, copier, buffer_filename_prefix, agent_done_cond, num_agents_per_generation):
+def taxi_observation_transform(observation):
+    observation_left = observation
+
+    destination = observation_left % 4
+    destination_one_hot = keras.utils.to_categorical(destination, num_classes=4)
+    observation_left = observation_left // 4
+
+    passenger_location = observation_left % 5
+    passenger_location_one_hot = keras.utils.to_categorical(passenger_location, num_classes=5)
+    observation_left = observation_left // 5
+
+    taxi_col = observation_left % 5
+    taxi_col_one_hot = keras.utils.to_categorical(taxi_col, num_classes=5)
+    observation_left = observation_left // 5
+
+    taxi_row = observation_left
+    taxi_row_one_hot = keras.utils.to_categorical(taxi_row, num_classes=5)
+
+    transformed_observation = np.concatenate((destination_one_hot, passenger_location_one_hot, taxi_col_one_hot, taxi_row_one_hot))
+    return transformed_observation
+
+def train_agent(idx, dqn_config, num_episodes, copier, buffer_filename_prefix, agent_done_cond, num_agents_per_generation, observation_transform):
     env = gym.make('Taxi-v3')
     observation, _ = env.reset()
+    observation = observation_transform(observation)
+    print(observation)
     num_actions = 6 # taxi
-    obs_dim = 500 # taxi
+    obs_dim = 4 + 5 + 5 + 5 # taxi
     assert(len(observation) == obs_dim)
     dqn_agent = Agent(id=idx,
                       input_dims=obs_dim + num_actions,
@@ -143,7 +166,8 @@ def create_copier_buffer(observations, actions, num_agents_per_generation):
         agent_timepoints = len(agent_observations)
         total_timepoints += agent_timepoints
     observation_dim = len(observations[0])
-    observation_buffer = np.zeros((observation_dim, total_timepoints))
+    observation_dtype = observations[0][0].dtype
+    observation_buffer = np.zeros((observation_dim, total_timepoints), dtype=observation_dtype)
     action_buffer = np.zeros(total_timepoints)
     curr_timepoint = 0
     for agent_idx in range(num_agents_per_generation):
@@ -175,6 +199,7 @@ def synchronize(config):
 
 def agent_process(agent_idx, config):
     num_episodes = config["num_episodes_per_agent"]
+    num_agents_per_generation = config["num_agents_per_generation"]
     num_generations = config["num_generations"]
     for generation in range(num_generations):
         prefix = "gen_" + str(generation) + "_agent_" + str(agent_idx)
@@ -183,7 +208,7 @@ def agent_process(agent_idx, config):
         else:
             copier = Copier(config["copier"])
             copier.dqn_model = keras.models.load_model(g_copier_filepath)
-        train_agent(agent_idx, config["dqn_config"], num_episodes, copier, "/tmp/evolve", prefix)
+        train_agent(agent_idx, config["dqn_config"], num_episodes, copier, "/tmp/evolve", prefix, num_agents_per_generation, taxi_observation_transform)
         with g_generation_done:
             g_generation_done.wait()
 
