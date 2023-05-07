@@ -8,15 +8,19 @@ from multiprocessing import Process, Lock, Condition
 import yaml
 import tensorflow as tf
 import gymnasium as gym
-from tensorflow.keras.utils import to_categorical
+from tensorflow import keras
 import numpy as np
 
 from agents.dqn_model import Agent
 from copier import Copier
 
+g_tmp_dir = "/tmp/evolve"
+
 g_sync_lock = Lock()
 g_generation_done = Condition(g_sync_lock)
-g_num_agents_done_filepath = "/tmp/evolve/num_agents_done"
+g_sync_done = Condition(g_sync_lock)
+g_num_agents_done_filepath = os.path.join(g_tmp_dir, "num_agents_done")
+g_copier_filepath = os.path.join(g_tmp_dir, "curr_copier")
 
 def read_num_agents_done():
     with open(g_num_agents_done_filepath) as f: 
@@ -38,10 +42,10 @@ def get_copier_embedding(copier, observation, num_actions):
         copier_embedding = np.zeros(num_actions)
     else:
         copier_prediction = copier.predict(observation)
-        copier_embedding = to_categorical(copier_prediction, num_classes=num_actions)
+        copier_embedding = keras.utils.to_categorical(copier_prediction, num_classes=num_actions)
     return copier_embedding
 
-def train_agent(idx, dqn_config, num_episodes, copier, buffer_file_dir, buffer_filename_prefix, agent_done_cond, total_num_agents_per_generation):
+def train_agent(idx, dqn_config, num_episodes, copier, buffer_file_dir, buffer_filename_prefix, agent_done_cond, num_agents_per_generation):
     env = gym.make('Taxi-v3')
     observation, _ = env.reset()
     num_actions = 6 # taxi
@@ -81,10 +85,11 @@ def train_agent(idx, dqn_config, num_episodes, copier, buffer_file_dir, buffer_f
         num_agents_done = read_num_agents_done()
         num_agents_done += 1
         write_num_agents_done(num_agents_done)
-        if num_agents_done == total_num_agents_per_generation: 
+        if num_agents_done == num_agents_per_generation: 
             g_generation_done.notify()
+        g_sync_done.wait()
 
-def get_generation_data(generation, total_num_agents_per_generation):
+def get_generation_data(generation, num_agents_per_generation):
     observations = dict()
     actions = dict()
     for element in os.listdir("/tmp/evolve"):
@@ -111,21 +116,27 @@ def get_generation_data(generation, total_num_agents_per_generation):
             assert(agent_idx not in actions.keys())
             actions[agent_idx] = data
 
-    assert(len(observations.keys()) == total_num_agents_per_generation)
-    assert(len(actions.keys()) == total_num_agents_per_generation)
-    for idx in range(total_num_agents_per_generation):
+    assert(len(observations.keys()) == num_agents_per_generation)
+    assert(len(actions.keys()) == num_agents_per_generation)
+    for idx in range(num_agents_per_generation):
         assert(idx in observations.keys())
         assert(idx in actions.keys())
 
     return observations, actions
 
-def delete_generation_data(generation, total_num_agents_per_generation):
-    for agent_idx in range(total_num_agents_per_generation):
-        pass
+def delete_generation_data(generation, num_agents_per_generation):
+    for agent_idx in range(num_agents_per_generation):
+        prefix = "gen_" + str(generation) + "_agent_" + str(agent_idx)
+        observations_filename = prefix + "_obs.npy"
+        observations_filepath = os.path.join("/tmp/evolve", observations_filename)
+        os.remove(observations_filepath)
+        actions_filename = prefix + "_act.npy"
+        actions_filepath = os.path.join("/tmp/evolve", actions_filename)
+        os.remove(actions_filepath)
 
-def create_copier_buffer(observations, actions, total_num_agents_per_generation):
+def create_copier_buffer(observations, actions, num_agents_per_generation):
     total_timepoints = 0
-    for agent_idx in range(total_num_agents_per_generation):
+    for agent_idx in range(num_agents_per_generation):
         agent_observations = observations[agent_idx]
         agent_actions = actions[agent_idx]
         assert(len(agent_observations) == len(agent_actions))
@@ -135,7 +146,7 @@ def create_copier_buffer(observations, actions, total_num_agents_per_generation)
     observation_buffer = np.zeros((observation_dim, total_timepoints))
     action_buffer = np.zeros(total_timepoints)
     curr_timepoint = 0
-    for agent_idx in range(total_num_agents_per_generation):
+    for agent_idx in range(num_agents_per_generation):
         agent_observations = observations[agent_idx]
         agent_actions = actions[agent_idx]
         agent_timepoints = len(agent_observations)
@@ -145,23 +156,36 @@ def create_copier_buffer(observations, actions, total_num_agents_per_generation)
         curr_timepoint = next_timepoint
     return observation_buffer, action_buffer
 
-def synchronize(config, num_generations, total_num_agents_per_generation, buffer_file_dir):
+def synchronize(config, buffer_file_dir):
+    num_generations = config["num_generations"]
+    num_agents_per_generation = config["num_agents_per_generation"]
     for generation in range(num_generations):
-        g_generation_done.wait()
+        with g_sync_lock:
+            g_generation_done.wait()
         num_agents = read_num_agents_done()
-        assert(num_agents == total_num_agents_per_generation)
-        observations, actions = get_generation_data(generation, total_num_agents_per_generation)
-        observation_buffer, action_buffer = create_copier_buffer(observations, actions, total_num_agents_per_generation)
+        assert(num_agents == num_agents_per_generation)
+        observations, actions = get_generation_data(generation, num_agents_per_generation)
+        observation_buffer, action_buffer = create_copier_buffer(observations, actions, num_agents_per_generation)
         copier = Copier(config["copier"])
         copier.train(observation_buffer, action_buffer)
+        copier.dqn_model.save(g_copier_filepath)
+        delete_generation_data(generation, num_agents_per_generation)
+        g_sync_done.notify_all()
 
-def agent_process(agent_idx, config, num_generations):
+
+def agent_process(agent_idx, config):
     num_episodes = config["num_episodes_per_agent"]
+    num_generations = config["num_generations"]
     for generation in range(num_generations):
         prefix = "gen_" + str(generation) + "_agent_" + str(agent_idx)
+        if generation == 0:
+            copier = None
+        else:
+            copier = Copier(config["copier"])
+            copier.dqn_model = keras.models.load_model(g_copier_filepath)
         train_agent(agent_idx, config["dqn_config"], num_episodes, copier, "/tmp/evolve", prefix)
         with g_generation_done:
-            g_generation_done.wait_for()
+            g_generation_done.wait()
 
 def main():
     with open("config.yml") as f:
@@ -171,7 +195,7 @@ def main():
 
     processes = list()
     for idx in range(num_agents):
-        p = Process(target=agent, args=(idx, config["dqn_config"]))
+        p = Process(target=agent_process, args=(idx, config))
         processes.append(p)
         p.start()
     for p in processes:
