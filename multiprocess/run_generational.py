@@ -66,9 +66,9 @@ def taxi_observation_transform(observation):
     transformed_observation = np.concatenate((destination_one_hot, passenger_location_one_hot, taxi_col_one_hot, taxi_row_one_hot))
     return transformed_observation
 
-def train_agent(idx, dqn_config, num_episodes, copier, buffer_filename_prefix, agent_done_cond, num_agents_per_generation, observation_transform):
+def train_agent(idx, dqn_config, dqn_misc, num_episodes, copier, buffer_filename_prefix, agent_done_cond, num_agents_per_generation, observation_transform):
     env = gym.make('Taxi-v3')
-    observation, _ = env.reset()
+    observation, info = env.reset()
     observation = observation_transform(observation)
     print(observation)
     num_actions = 6 # taxi
@@ -80,26 +80,35 @@ def train_agent(idx, dqn_config, num_episodes, copier, buffer_filename_prefix, a
                       **dqn_config)
     observation_buffer = list()
     action_buffer = list()
+    curr_observation = observation
+    curr_reward = None
+    curr_termination = False
+    curr_truncation = False
+    curr_info = info
     for episode in range(num_episodes):
-        observation, reward, termination, truncation, info = env.last() 
-        if termination or truncation:
+        if curr_termination or curr_truncation:
             break
 
-        copier_embedding = get_copier_embedding(copier, observation, num_actions)
-        observation_with_copier_embedding = np.concatenate((observation, copier_embedding))
-        action, dqn_command, entropy = dqn_agent.choose_action(observation_with_copier_embedding)
-        env.step(action_i)
+        copier_embedding = get_copier_embedding(copier, curr_observation, num_actions)
+        curr_observation_with_copier_embedding = np.concatenate((curr_observation, copier_embedding))
+        curr_action, dqn_command, entropy = dqn_agent.choose_action(curr_observation_with_copier_embedding)
+        next_observation, next_reward, next_termination, next_truncation, next_info = env.step(curr_action)
 
-        observation_buffer.append(observation)
-        action_buffer.append(action)
+        observation_buffer.append(curr_observation_with_copier_embedding)
+        action_buffer.append(curr_action)
 
-        new_observation, reward, termination, truncation, info = env.last()
-        new_copier_embedding = get_copier_embedding(copier, new_observation, num_actions)
-        new_observation_with_copier_embedding = np.concatenate((new_observation, new_copier_embedding))
-        dqn_agent.store_transition(observation_with_copier_embedding, action, reward, new_observation_with_copier_embedding, False)
+        next_copier_embedding = get_copier_embedding(copier, next_observation, num_actions)
+        next_observation_with_copier_embedding = np.concatenate((next_observation, next_copier_embedding))
+        dqn_agent.store_transition(curr_observation_with_copier_embedding, curr_action, next_reward, next_observation_with_copier_embedding, False)
 
-        if episode > episodes_until_dqn_learn:
+        if episode > dqn_misc["episodes_until_learn"]:
             dqn_agent.learn()
+
+        curr_observation = next_observation
+        curr_reward = next_reward
+        curr_termination = next_termination
+        curr_truncation = next_truncation
+        curr_info = next_info
 
     save_buffer(observation_buffer, buffer_filename_prefix, "_obs")
     save_buffer(action_buffer, buffer_filename_prefix, "_act")
@@ -208,7 +217,7 @@ def agent_process(agent_idx, config):
         else:
             copier = Copier(config["copier"])
             copier.dqn_model = keras.models.load_model(g_copier_filepath)
-        train_agent(agent_idx, config["dqn_config"], num_episodes, copier, "/tmp/evolve", prefix, num_agents_per_generation, taxi_observation_transform)
+        train_agent(agent_idx, config["dqn_config"], config["dqn_misc"], num_episodes, copier, "/tmp/evolve", prefix, num_agents_per_generation, taxi_observation_transform)
         with g_generation_done:
             g_generation_done.wait()
 

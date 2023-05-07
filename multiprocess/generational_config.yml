@@ -16,3 +16,5 @@ dqn_config:
   batch_size: 64
   epsilon_dec: 0.97
   epsilon_end: 0.001
+dqn_misc:
+  episodes_until_learn: 15
