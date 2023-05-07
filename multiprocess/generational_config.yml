@@ -1,9 +1,10 @@
 num_agents_per_generation: 1
 num_episodes_per_agent: 10
 num_generations: 20
-copier_config:
+copier:
   activation: relu
   obs_dim: 19
+  act_dim: 6
   l2_alpha: 0.01
   width: 16
   epochs: 150

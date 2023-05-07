@@ -5,21 +5,21 @@ for gpu in gpus:
 
 import numpy as np
 from tensorflow import keras
-from tensorflow.keras.models import load_model
 from tensorflow.keras import Sequential
-
+from tensorflow.keras.layers import Dense
 
 class Copier():
     def __init__(self, config):
-        activation_func = config["activation"]
+        activation = config["activation"]
         obs_dim = config["obs_dim"]
+        act_dim = config["act_dim"]
         l2_alpha = config["l2_alpha"]
         width = config["width"]
 
         self.model = keras.Sequential()
         self.model.add(Dense(width, activation=activation, kernel_initializer='he_normal', input_shape=(obs_dim,), kernel_regularizer=keras.regularizers.l2(l2_alpha)))
         self.model.add(Dense(width, activation=activation, kernel_initializer='he_normal', kernel_regularizer=keras.regularizers.l2(l2_alpha)))
-        self.model.add(Dense(num_actions, activation='softmax'))
+        self.model.add(Dense(act_dim, activation='softmax'))
         # compile the model
         self.model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 

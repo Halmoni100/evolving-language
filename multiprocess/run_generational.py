@@ -94,7 +94,7 @@ def train_agent(idx, dqn_config, dqn_misc, num_episodes, copier, buffer_filename
         next_observation, next_reward, next_termination, next_truncation, next_info = env.step(curr_action)
         next_observation = observation_transform(next_observation)
 
-        observation_buffer.append(curr_observation_with_copier_embedding)
+        observation_buffer.append(curr_observation)
         action_buffer.append(curr_action)
 
         next_copier_embedding = get_copier_embedding(copier, next_observation, num_actions)
@@ -204,7 +204,7 @@ def synchronize(config):
         observation_buffer, action_buffer = create_copier_buffer(observations, actions, num_agents_per_generation)
         copier = Copier(config["copier"])
         copier.train(observation_buffer, action_buffer)
-        copier.dqn_model.save(g_copier_filepath)
+        copier.model.save(g_copier_filepath)
         delete_generation_data(generation, num_agents_per_generation)
         with g_sync_lock:
             write_num_agents_done(0)
