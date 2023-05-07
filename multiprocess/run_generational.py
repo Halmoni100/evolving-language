@@ -31,10 +31,10 @@ def write_num_agents_done(new_value):
     with open(g_num_agents_done_filepath, 'w') as f:
         f.write(str(new_value))
 
-def save_buffer(buffer, dirpath, prefix, suffix):
+def save_buffer(buffer, prefix, suffix):
     buffer_np = np.array(buffer)
     filename = prefix + suffix + ".npy"
-    filepath = os.path.join(dirpath, filename)
+    filepath = os.path.join(g_tmp_dir, filename)
     np.save(buffer_np, filepath)
 
 def get_copier_embedding(copier, observation, num_actions):
@@ -45,7 +45,7 @@ def get_copier_embedding(copier, observation, num_actions):
         copier_embedding = keras.utils.to_categorical(copier_prediction, num_classes=num_actions)
     return copier_embedding
 
-def train_agent(idx, dqn_config, num_episodes, copier, buffer_file_dir, buffer_filename_prefix, agent_done_cond, num_agents_per_generation):
+def train_agent(idx, dqn_config, num_episodes, copier, buffer_filename_prefix, agent_done_cond, num_agents_per_generation):
     env = gym.make('Taxi-v3')
     observation, _ = env.reset()
     num_actions = 6 # taxi
@@ -78,8 +78,8 @@ def train_agent(idx, dqn_config, num_episodes, copier, buffer_file_dir, buffer_f
         if episode > episodes_until_dqn_learn:
             dqn_agent.learn()
 
-    save_buffer(observation_buffer, buffer_file_dir, buffer_filename_prefix, "_obs")
-    save_buffer(action_buffer, buffer_file_dir, buffer_filename_prefix, "_act")
+    save_buffer(observation_buffer, buffer_filename_prefix, "_obs")
+    save_buffer(action_buffer, buffer_filename_prefix, "_act")
 
     with g_sync_lock:
         num_agents_done = read_num_agents_done()
@@ -94,13 +94,13 @@ def get_generation_data(generation, num_agents_per_generation):
     actions = dict()
     for element in os.listdir("/tmp/evolve"):
         root_ext = os.path.splitext(element)
-        if root_ext[1] != ".npy"
+        if root_ext[1] != ".npy":
             continue
         root_split = root_ext[0].split('_')
-        if len(root_split) != 5 
-                or root_split[0] != "gen" 
-                or root_split[2] != "agent" 
-                or (root_split[4] != "obs" and root_split[4] != "act"):
+        if (len(root_split) != 5
+                or root_split[0] != "gen"
+                or root_split[2] != "agent"
+                or (root_split[4] != "obs" and root_split[4] != "act")):
             continue
         file_generation = int(root_split[1])
         agent_idx = int(root_split[3])
@@ -156,7 +156,7 @@ def create_copier_buffer(observations, actions, num_agents_per_generation):
         curr_timepoint = next_timepoint
     return observation_buffer, action_buffer
 
-def synchronize(config, buffer_file_dir):
+def synchronize(config):
     num_generations = config["num_generations"]
     num_agents_per_generation = config["num_agents_per_generation"]
     for generation in range(num_generations):
@@ -188,13 +188,14 @@ def agent_process(agent_idx, config):
             g_generation_done.wait()
 
 def main():
-    with open("config.yml") as f:
+    with open("generational_config.yml") as f:
         config = yaml.load(f, Loader=yaml.Loader)
 
-    num_agents_per_generation = 4
+    num_agents_per_generation = config["num_agents_per_generation"]
 
     processes = list()
-    for idx in range(num_agents):
+    p = Process(target=synchronize, args=(config))
+    for idx in range(num_agents_per_generation):
         p = Process(target=agent_process, args=(idx, config))
         processes.append(p)
         p.start()

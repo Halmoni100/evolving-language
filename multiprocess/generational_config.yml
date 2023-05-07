@@ -1,3 +1,6 @@
+num_agents_per_generation: 4
+num_episodes_per_agent: 200
+num_generations: 20
 copier_config:
   activation: relu
   obs_dim: 500

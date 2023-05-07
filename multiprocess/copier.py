@@ -10,7 +10,7 @@ from tensorflow.keras import Sequential
 
 
 class Copier():
-    def __init__(self, config)
+    def __init__(self, config):
         activation_func = config["activation"]
         obs_dim = config["obs_dim"]
         l2_alpha = config["l2_alpha"]
