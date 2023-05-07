@@ -35,7 +35,7 @@ def save_buffer(buffer, prefix, suffix):
     buffer_np = np.array(buffer)
     filename = prefix + suffix + ".npy"
     filepath = os.path.join(g_tmp_dir, filename)
-    np.save(buffer_np, filepath)
+    np.save(filepath, buffer_np)
 
 def get_copier_embedding(copier, observation, num_actions):
     if copier is None:
@@ -93,11 +93,14 @@ def train_agent(idx, dqn_config, dqn_misc, num_episodes, copier, buffer_filename
         curr_observation_with_copier_embedding = np.concatenate((curr_observation, copier_embedding))
         curr_action, dqn_command, entropy = dqn_agent.choose_action(curr_observation_with_copier_embedding)
         next_observation, next_reward, next_termination, next_truncation, next_info = env.step(curr_action)
+        next_observation = observation_transform(next_observation)
 
         observation_buffer.append(curr_observation_with_copier_embedding)
         action_buffer.append(curr_action)
 
         next_copier_embedding = get_copier_embedding(copier, next_observation, num_actions)
+        print(next_observation.shape)
+        print(next_copier_embedding.shape)
         next_observation_with_copier_embedding = np.concatenate((next_observation, next_copier_embedding))
         dqn_agent.store_transition(curr_observation_with_copier_embedding, curr_action, next_reward, next_observation_with_copier_embedding, False)
 
@@ -203,7 +206,9 @@ def synchronize(config):
         copier.train(observation_buffer, action_buffer)
         copier.dqn_model.save(g_copier_filepath)
         delete_generation_data(generation, num_agents_per_generation)
-        g_sync_done.notify_all()
+        with g_sync_lock:
+            write_num_agents_done(0)
+            g_sync_done.notify_all()
 
 
 def agent_process(agent_idx, config):
@@ -222,6 +227,10 @@ def agent_process(agent_idx, config):
             g_generation_done.wait()
 
 def main():
+    os.makedirs(g_tmp_dir, exist_ok=True)
+    with g_sync_lock:
+        write_num_agents_done(0)
+
     with open("generational_config.yml") as f:
         config = yaml.load(f, Loader=yaml.Loader)
 
