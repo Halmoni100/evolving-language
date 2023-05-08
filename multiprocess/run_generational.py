@@ -3,6 +3,7 @@
 import sys
 sys.path.append("..")
 import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 from multiprocessing import Process, Lock, Condition
 
 import yaml
@@ -119,7 +120,10 @@ def train_agent(idx, dqn_config, dqn_misc, num_episodes, copier, buffer_filename
         dqn_agent.store_transition(curr_observation_with_copier_embedding, curr_action, next_reward, next_observation_with_copier_embedding, False)
 
         if episode > dqn_misc["episodes_until_learn"]:
-            dqn_agent.learn()
+            devnull = open(os.devnull, 'w')
+            with RedirectStdStreams(stdout=devnull, stderr=devnull): # hack to suppress output
+                dqn_agent.learn()
+            devnull.close()
 
         curr_observation = next_observation
         curr_reward = next_reward
@@ -217,7 +221,7 @@ def synchronize(config):
         observations, actions = get_generation_data(generation, num_agents_per_generation)
         observation_buffer, action_buffer = create_copier_buffer(observations, actions, num_agents_per_generation)
         copier = Copier(config["copier"])
-        copier.train(observation_buffer, action_buffer)
+        copier.train(observation_buffer, action_buffer, verbose=0)
         copier.model.save(g_copier_filepath)
         delete_generation_data(generation, num_agents_per_generation)
         with g_sync_lock:
