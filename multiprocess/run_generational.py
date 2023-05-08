@@ -6,10 +6,12 @@ import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 from multiprocessing import Process, Lock, Condition
+import uuid
 
 import yaml
 import gymnasium as gym
 import numpy as np
+import matplotlib.pyplot as plt
 
 from taxi import taxi_observation_transform
 from suppress_output import RedirectStdStreams
@@ -48,7 +50,7 @@ def get_copier_embedding(copier, observation, num_actions):
         copier_embedding = keras.utils.to_categorical(copier_prediction, num_classes=num_actions)
     return copier_embedding
 
-def train_agent(idx, dqn_config, dqn_misc, num_episodes, copier, buffer_filename_prefix, num_agents_per_generation, observation_transform):
+def train_agent(run_id, idx, dqn_config, dqn_misc, num_episodes, copier, buffer_filename_prefix, num_agents_per_generation, observation_transform):
     from agents.dqn_model import Agent
 
     observation_buffer = list()
@@ -217,12 +219,27 @@ def create_buffers(observations, actions, rewards, num_agents_per_generation, nu
 
     return observation_buffer, action_buffer, reward_buffer
 
-def synchronize(config):
+def plot_rewards(generation_rewards, plot_dir):
+    plt.clf()
+    fig, ax = plt.subplots()
+    ax.violinplot(generation_rewards)
+    plot_path = os.path.join(plot_dir, "rewards.png")
+    plt.savefig(plot_path)
+
+def synchronize(run_id, config):
     from copier import Copier
+
+    results_dir = "results"
+    run_dir = os.path.join(results_dir, run_id)
+    os.makedirs(run_dir, exist_ok=True)
+
+    run_log_dir = os.path.join("logs", run_id)
+    os.makedirs(run_log_dir, exist_ok=True)
 
     num_generations = config["num_generations"]
     num_agents_per_generation = config["num_agents_per_generation"]
     num_episodes_per_agent = config["num_episodes_per_agent"]
+    generation_rewards = list()
     for generation in range(num_generations):
         with g_sync_lock:
             g_generation_done.wait()
@@ -234,9 +251,12 @@ def synchronize(config):
         reward_mean = np.mean(reward_buffer)
         reward_std = np.std(reward_buffer)
         print(f"Reward mean: {reward_mean}, std_dev: {reward_std}")
+        generation_rewards.append(reward_buffer)
+        plot_rewards(generation_rewards)
 
         copier = Copier(config["copier"])
-        copier.train(observation_buffer, action_buffer, verbose=0)
+        fit_dir = os.path.join(run_log_dir, f"gen{generation}")
+        copier.train(observation_buffer, action_buffer, verbose=0, tensorboard_log_dir=fit_dir)
         copier.model.save(g_copier_filepath)
         delete_generation_data(generation, num_agents_per_generation)
         with g_sync_lock:
@@ -262,6 +282,8 @@ def agent_process(agent_idx, config):
             g_sync_done.wait()
 
 def main():
+    run_id = uuid.uuid4()
+
     os.makedirs(g_tmp_dir, exist_ok=True)
     with g_sync_lock:
         write_num_agents_done(0)
@@ -272,11 +294,11 @@ def main():
     num_agents_per_generation = config["num_agents_per_generation"]
 
     processes = list()
-    p = Process(target=synchronize, args=(config,))
+    p = Process(target=synchronize, args=(run_id, config))
     processes.append(p)
     p.start()
     for idx in range(num_agents_per_generation):
-        p = Process(target=agent_process, args=(idx, config))
+        p = Process(target=agent_process, args=(run_id, idx, config))
         processes.append(p)
         p.start()
     for p in processes:

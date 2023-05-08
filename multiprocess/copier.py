@@ -22,10 +22,13 @@ class Copier():
         self.epochs = config["epochs"]
         self.batch_size = config["batch_size"]
 
-    def train(self, observations, actions, verbose="auto"):
+    def train(self, observations, actions, verbose="auto", tensorboard_log_dir=None):
        X_train = observations
        y_train = actions
-       self.model.fit(X_train, y_train, epochs=self.epochs, batch_size=self.batch_size, verbose=verbose)
+       callbacks = list()
+       if tensorboard_log_dir is not None:
+           tensorboard_callback = keras.callbacks.TensorBoard(log_dir=tensorboard_log_dir, histogram_freq=1)
+       self.model.fit(X_train, y_train, epochs=self.epochs, batch_size=self.batch_size, verbose=verbose, callbacks=callbacks)
 
     def predict(self, new_obs, verbose="auto"):
        new_obs = np.expand_dims(new_obs, 0)
