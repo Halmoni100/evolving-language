@@ -261,21 +261,28 @@ def synchronize(run_id, config):
             write_num_agents_done(0)
             g_sync_done.notify_all()
 
-def agent_process(run_id, agent_idx, config):
+def run_train_agent(generation, run_id, agent_idx, config):
     from tensorflow import keras
     from copier import Copier
 
     num_episodes = config["num_episodes_per_agent"]
     num_agents_per_generation = config["num_agents_per_generation"]
+
+    prefix = "gen_" + str(generation) + "_agent_" + str(agent_idx)
+
+    if generation == 0:
+        copier = None
+    else:
+        copier = Copier(config["copier"])
+        copier.dqn_model = keras.models.load_model(g_copier_filepath)
+    train_agent(run_id, agent_idx, config["dqn_config"], config["dqn_misc"], num_episodes, copier, prefix, num_agents_per_generation, taxi_observation_transform)
+
+def agent_process(run_id, agent_idx, config):
     num_generations = config["num_generations"]
     for generation in range(num_generations):
-        prefix = "gen_" + str(generation) + "_agent_" + str(agent_idx)
-        if generation == 0:
-            copier = None
-        else:
-            copier = Copier(config["copier"])
-            copier.dqn_model = keras.models.load_model(g_copier_filepath)
-        train_agent(run_id, agent_idx, config["dqn_config"], config["dqn_misc"], num_episodes, copier, prefix, num_agents_per_generation, taxi_observation_transform)
+        p = Process(target=run_train_agent, args=(generation, run_id, agent_idx, config))
+        p.start()
+        p.join()
         with g_sync_lock:
             g_sync_done.wait()
 
