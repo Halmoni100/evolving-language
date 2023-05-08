@@ -4,6 +4,7 @@ import sys
 sys.path.append("..")
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 from multiprocessing import Process, Lock, Condition
 
 import yaml
