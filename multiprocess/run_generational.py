@@ -7,6 +7,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 from multiprocessing import Process, Lock, Condition
 import uuid
+import shutil
 
 import yaml
 import gymnasium as gym
@@ -220,6 +221,7 @@ def create_buffers(observations, actions, rewards, num_agents_per_generation, nu
     return observation_buffer, action_buffer, reward_buffer
 
 def plot_rewards(generation_rewards, plot_dir):
+    os.makedirs(plot_dir, exist_ok=True)
     plt.clf()
     fig, ax = plt.subplots()
     ax.violinplot(generation_rewards)
@@ -228,10 +230,6 @@ def plot_rewards(generation_rewards, plot_dir):
 
 def synchronize(run_id, config):
     from copier import Copier
-
-    results_dir = "results"
-    run_dir = os.path.join(results_dir, run_id)
-    os.makedirs(run_dir, exist_ok=True)
 
     run_log_dir = os.path.join("logs", run_id)
     os.makedirs(run_log_dir, exist_ok=True)
@@ -252,7 +250,7 @@ def synchronize(run_id, config):
         reward_std = np.std(reward_buffer)
         print(f"Reward mean: {reward_mean}, std_dev: {reward_std}")
         generation_rewards.append(reward_buffer)
-        plot_rewards(generation_rewards)
+        plot_rewards(generation_rewards, "results")
 
         copier = Copier(config["copier"])
         fit_dir = os.path.join(run_log_dir, f"gen{generation}")
@@ -263,7 +261,7 @@ def synchronize(run_id, config):
             write_num_agents_done(0)
             g_sync_done.notify_all()
 
-def agent_process(agent_idx, config):
+def agent_process(run_id, agent_idx, config):
     from tensorflow import keras
     from copier import Copier
 
@@ -277,13 +275,15 @@ def agent_process(agent_idx, config):
         else:
             copier = Copier(config["copier"])
             copier.dqn_model = keras.models.load_model(g_copier_filepath)
-        train_agent(agent_idx, config["dqn_config"], config["dqn_misc"], num_episodes, copier, prefix, num_agents_per_generation, taxi_observation_transform)
+        train_agent(run_id, agent_idx, config["dqn_config"], config["dqn_misc"], num_episodes, copier, prefix, num_agents_per_generation, taxi_observation_transform)
         with g_sync_lock:
             g_sync_done.wait()
 
 def main():
-    run_id = uuid.uuid4()
+    run_id = str(uuid.uuid4())
 
+    if os.path.isdir(g_tmp_dir):
+        shutil.rmtree(g_tmp_dir)
     os.makedirs(g_tmp_dir, exist_ok=True)
     with g_sync_lock:
         write_num_agents_done(0)

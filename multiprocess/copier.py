@@ -27,7 +27,12 @@ class Copier():
        y_train = actions
        callbacks = list()
        if tensorboard_log_dir is not None:
-           tensorboard_callback = keras.callbacks.TensorBoard(log_dir=tensorboard_log_dir, histogram_freq=1)
+           tensorboard_callback = keras.callbacks.TensorBoard(
+                   log_dir=tensorboard_log_dir,
+                   histogram_freq=0,
+                   write_graph=True,
+                   write_images=False)
+           callbacks.append(tensorboard_callback)
        self.model.fit(X_train, y_train, epochs=self.epochs, batch_size=self.batch_size, verbose=verbose, callbacks=callbacks)
 
     def predict(self, new_obs, verbose="auto"):
