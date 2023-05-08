@@ -1,5 +1,5 @@
 num_agents_per_generation: 2
-num_episodes_per_agent: 100
+num_episodes_per_agent: 10
 num_generations: 20
 copier:
   activation: relu
