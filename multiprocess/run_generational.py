@@ -7,13 +7,9 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 from multiprocessing import Process, Lock, Condition
 
 import yaml
-import tensorflow as tf
 import gymnasium as gym
-from tensorflow import keras
 import numpy as np
 
-from agents.dqn_model import Agent
-from copier import Copier
 from taxi import taxi_observation_transform
 from suppress_output import RedirectStdStreams
 from progress_bar import ProgressBar
@@ -42,6 +38,8 @@ def save_buffer(buffer, prefix, suffix):
     np.save(filepath, buffer_np)
 
 def get_copier_embedding(copier, observation, num_actions):
+    from tensorflow import keras
+
     if copier is None:
         copier_embedding = np.zeros(num_actions)
     else:
@@ -50,6 +48,8 @@ def get_copier_embedding(copier, observation, num_actions):
     return copier_embedding
 
 def train_agent(idx, dqn_config, dqn_misc, num_episodes, copier, buffer_filename_prefix, num_agents_per_generation, observation_transform):
+    from agents.dqn_model import Agent
+
     observation_buffer = list()
     action_buffer = list()
     reward_buffer = list()
@@ -66,11 +66,11 @@ def train_agent(idx, dqn_config, dqn_misc, num_episodes, copier, buffer_filename
 
     if idx == 0:
         pb = ProgressBar(num_episodes, length=50)
-        pb.start(front_msg="episode 0")
+        pb.start(front_msg="episodes ")
 
     for episode in range(num_episodes):
         if idx == 0:
-            pb.update(front_msg=f"episode {episode}")
+            pb.update(front_msg="episodes ")
 
         observation, info = env.reset()
         observation = observation_transform(observation)
@@ -84,7 +84,6 @@ def train_agent(idx, dqn_config, dqn_misc, num_episodes, copier, buffer_filename
         # run episode
         while True:
             if curr_termination or curr_truncation:
-                reward_buffer.append(episode_reward)
                 break
 
             copier_embedding = get_copier_embedding(copier, curr_observation, num_actions)
@@ -112,6 +111,8 @@ def train_agent(idx, dqn_config, dqn_misc, num_episodes, copier, buffer_filename
             curr_termination = next_termination
             curr_truncation = next_truncation
             curr_info = next_info
+        
+        reward_buffer.append(episode_reward)
 
     if idx == 0:
         pb.reset()
@@ -162,7 +163,7 @@ def get_generation_data(generation, num_agents_per_generation, num_episodes_per_
 
     assert(len(observations.keys()) == num_agents_per_generation)
     assert(len(actions.keys()) == num_agents_per_generation)
-    assert(len(rewards.keys()) == num_episodes_per_agent)
+    assert(len(rewards.keys()) == num_agents_per_generation)
     for idx in range(num_agents_per_generation):
         assert(idx in observations.keys())
         assert(idx in actions.keys())
@@ -190,6 +191,7 @@ def create_buffers(observations, actions, rewards, num_agents_per_generation, nu
         agent_actions = actions[agent_idx]
         agent_rewards = rewards[agent_idx]
         assert(len(agent_observations) == len(agent_actions))
+        assert(len(agent_rewards) == num_episodes_per_agent)
         agent_timepoints = len(agent_observations)
         total_timepoints += agent_timepoints
     observation_dim = observations[0].shape[1]
@@ -215,6 +217,8 @@ def create_buffers(observations, actions, rewards, num_agents_per_generation, nu
     return observation_buffer, action_buffer, reward_buffer
 
 def synchronize(config):
+    from copier import Copier
+
     num_generations = config["num_generations"]
     num_agents_per_generation = config["num_agents_per_generation"]
     num_episodes_per_agent = config["num_episodes_per_agent"]
@@ -224,7 +228,7 @@ def synchronize(config):
         num_agents = read_num_agents_done()
         assert(num_agents == num_agents_per_generation)
         observations, actions, rewards = get_generation_data(generation, num_agents_per_generation, num_episodes_per_agent)
-        observation_buffer, action_buffer, reward_buffer = create_buffers(observations, actions, rewards, num_agents_per_generation)
+        observation_buffer, action_buffer, reward_buffer = create_buffers(observations, actions, rewards, num_agents_per_generation, num_episodes_per_agent)
 
         reward_mean = np.mean(reward_buffer)
         reward_std = np.std(reward_buffer)
@@ -239,6 +243,9 @@ def synchronize(config):
             g_sync_done.notify_all()
 
 def agent_process(agent_idx, config):
+    from tensorflow import keras
+    from copier import Copier
+
     num_episodes = config["num_episodes_per_agent"]
     num_agents_per_generation = config["num_agents_per_generation"]
     num_generations = config["num_generations"]
