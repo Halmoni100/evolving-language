@@ -90,8 +90,8 @@ class Agent():
         self.memory.store_transition(state, action, reward, new_state, done)
 
 
-    def choose_action(self, observation):
-        prob = self.q_eval.predict(np.array([observation]))
+    def choose_action(self, observation, verbose="auto"):
+        prob = self.q_eval.predict(np.array([observation]), verbose=verbose)
         H = entropy(np.squeeze(prob))
         
         if np.random.random() < self.epsilon:

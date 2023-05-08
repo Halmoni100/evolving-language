@@ -14,6 +14,21 @@ import numpy as np
 from agents.dqn_model import Agent
 from copier import Copier
 
+class RedirectStdStreams(object):
+    def __init__(self, stdout=None, stderr=None):
+        self._stdout = stdout or sys.stdout
+        self._stderr = stderr or sys.stderr
+
+    def __enter__(self):
+        self.old_stdout, self.old_stderr = sys.stdout, sys.stderr
+        self.old_stdout.flush(); self.old_stderr.flush()
+        sys.stdout, sys.stderr = self._stdout, self._stderr
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self._stdout.flush(); self._stderr.flush()
+        sys.stdout = self.old_stdout
+        sys.stderr = self.old_stderr
+
 g_tmp_dir = "/tmp/evolve"
 
 g_sync_lock = Lock()
@@ -41,7 +56,7 @@ def get_copier_embedding(copier, observation, num_actions):
     if copier is None:
         copier_embedding = np.zeros(num_actions)
     else:
-        copier_prediction = copier.predict(observation)
+        copier_prediction = copier.predict(observation, verbose=0)
         copier_embedding = keras.utils.to_categorical(copier_prediction, num_classes=num_actions)
     return copier_embedding
 
@@ -79,6 +94,7 @@ def train_agent(idx, dqn_config, dqn_misc, num_episodes, copier, buffer_filename
                       **dqn_config)
     observation_buffer = list()
     action_buffer = list()
+    reward_buffer = list()
     curr_observation = observation
     curr_reward = None
     curr_termination = False
@@ -90,12 +106,13 @@ def train_agent(idx, dqn_config, dqn_misc, num_episodes, copier, buffer_filename
 
         copier_embedding = get_copier_embedding(copier, curr_observation, num_actions)
         curr_observation_with_copier_embedding = np.concatenate((curr_observation, copier_embedding))
-        curr_action, dqn_command, entropy = dqn_agent.choose_action(curr_observation_with_copier_embedding)
+        curr_action, dqn_command, entropy = dqn_agent.choose_action(curr_observation_with_copier_embedding, verbose=0)
         next_observation, next_reward, next_termination, next_truncation, next_info = env.step(curr_action)
         next_observation = observation_transform(next_observation)
 
         observation_buffer.append(curr_observation)
         action_buffer.append(curr_action)
+        reward_buffer.append(next_reward)
 
         next_copier_embedding = get_copier_embedding(copier, next_observation, num_actions)
         next_observation_with_copier_embedding = np.concatenate((next_observation, next_copier_embedding))
@@ -112,13 +129,13 @@ def train_agent(idx, dqn_config, dqn_misc, num_episodes, copier, buffer_filename
 
     save_buffer(observation_buffer, buffer_filename_prefix, "_obs")
     save_buffer(action_buffer, buffer_filename_prefix, "_act")
+    save_buffer(reward_buffer, buffer_filename_prefix, "_rew")
 
     with g_sync_lock:
         num_agents_done = read_num_agents_done()
         num_agents_done += 1
         write_num_agents_done(num_agents_done)
         if num_agents_done == num_agents_per_generation: 
-            print("generation done!")
             g_generation_done.notify()
 
 def get_generation_data(generation, num_agents_per_generation):
@@ -194,9 +211,7 @@ def synchronize(config):
     num_agents_per_generation = config["num_agents_per_generation"]
     for generation in range(num_generations):
         with g_sync_lock:
-            print("waiting for generation done")
             g_generation_done.wait()
-        print("synchronizing")
         num_agents = read_num_agents_done()
         assert(num_agents == num_agents_per_generation)
         observations, actions = get_generation_data(generation, num_agents_per_generation)
@@ -207,7 +222,6 @@ def synchronize(config):
         delete_generation_data(generation, num_agents_per_generation)
         with g_sync_lock:
             write_num_agents_done(0)
-            print("sync done")
             g_sync_done.notify_all()
 
 

@@ -26,14 +26,14 @@ class Copier():
         self.epochs = config["epochs"]
         self.batch_size = config["batch_size"]
 
-    def train(self, observations, actions):
+    def train(self, observations, actions, verbose="auto"):
        X_train = observations
        y_train = actions
-       self.model.fit(X_train, y_train, epochs=self.epochs, batch_size=self.batch_size)
+       self.model.fit(X_train, y_train, epochs=self.epochs, batch_size=self.batch_size, verbose=verbose)
 
-    def predict(self, new_obs):
+    def predict(self, new_obs, verbose="auto"):
        new_obs = np.expand_dims(new_obs, 0)
-       yhat = self.model.predict(new_obs)
+       yhat = self.model.predict(new_obs, verbose=verbose)
        predicted_action = np.argmax(yhat)
 
        return predicted_action
