@@ -14,21 +14,9 @@ import numpy as np
 
 from agents.dqn_model import Agent
 from copier import Copier
-
-class RedirectStdStreams(object):
-    def __init__(self, stdout=None, stderr=None):
-        self._stdout = stdout or sys.stdout
-        self._stderr = stderr or sys.stderr
-
-    def __enter__(self):
-        self.old_stdout, self.old_stderr = sys.stdout, sys.stderr
-        self.old_stdout.flush(); self.old_stderr.flush()
-        sys.stdout, sys.stderr = self._stdout, self._stderr
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        self._stdout.flush(); self._stderr.flush()
-        sys.stdout = self.old_stdout
-        sys.stderr = self.old_stderr
+from taxi import taxi_observation_transform
+from suppress_output import RedirectStdStreams
+from progress_bar import ProgressBar
 
 g_tmp_dir = "/tmp/evolve"
 
@@ -61,28 +49,10 @@ def get_copier_embedding(copier, observation, num_actions):
         copier_embedding = keras.utils.to_categorical(copier_prediction, num_classes=num_actions)
     return copier_embedding
 
-def taxi_observation_transform(observation):
-    observation_left = observation
-
-    destination = observation_left % 4
-    destination_one_hot = keras.utils.to_categorical(destination, num_classes=4)
-    observation_left = observation_left // 4
-
-    passenger_location = observation_left % 5
-    passenger_location_one_hot = keras.utils.to_categorical(passenger_location, num_classes=5)
-    observation_left = observation_left // 5
-
-    taxi_col = observation_left % 5
-    taxi_col_one_hot = keras.utils.to_categorical(taxi_col, num_classes=5)
-    observation_left = observation_left // 5
-
-    taxi_row = observation_left
-    taxi_row_one_hot = keras.utils.to_categorical(taxi_row, num_classes=5)
-
-    transformed_observation = np.concatenate((destination_one_hot, passenger_location_one_hot, taxi_col_one_hot, taxi_row_one_hot))
-    return transformed_observation
-
 def train_agent(idx, dqn_config, dqn_misc, num_episodes, copier, buffer_filename_prefix, num_agents_per_generation, observation_transform):
+    observation_buffer = list()
+    action_buffer = list()
+    reward_buffer = list()
     env = gym.make('Taxi-v3')
     observation, info = env.reset()
     observation = observation_transform(observation)
@@ -93,43 +63,58 @@ def train_agent(idx, dqn_config, dqn_misc, num_episodes, copier, buffer_filename
                       input_dims=obs_dim + num_actions,
                       n_actions=num_actions,
                       **dqn_config)
-    observation_buffer = list()
-    action_buffer = list()
-    reward_buffer = list()
-    curr_observation = observation
-    curr_reward = None
-    curr_termination = False
-    curr_truncation = False
-    curr_info = info
+
+    if idx == 0:
+        pb = ProgressBar(num_episodes, length=50)
+        pb.start(front_msg="episode 0")
+
     for episode in range(num_episodes):
-        if curr_termination or curr_truncation:
-            break
+        if idx == 0:
+            pb.update(front_msg=f"episode {episode}")
 
-        copier_embedding = get_copier_embedding(copier, curr_observation, num_actions)
-        curr_observation_with_copier_embedding = np.concatenate((curr_observation, copier_embedding))
-        curr_action, dqn_command, entropy = dqn_agent.choose_action(curr_observation_with_copier_embedding, verbose=0)
-        next_observation, next_reward, next_termination, next_truncation, next_info = env.step(curr_action)
-        next_observation = observation_transform(next_observation)
+        observation, info = env.reset()
+        observation = observation_transform(observation)
+        curr_observation = observation
+        curr_reward = None
+        curr_termination = False
+        curr_truncation = False
+        curr_info = info
+        episode_reward = 0
 
-        observation_buffer.append(curr_observation)
-        action_buffer.append(curr_action)
-        reward_buffer.append(next_reward)
+        # run episode
+        while True:
+            if curr_termination or curr_truncation:
+                reward_buffer.append(episode_reward)
+                break
 
-        next_copier_embedding = get_copier_embedding(copier, next_observation, num_actions)
-        next_observation_with_copier_embedding = np.concatenate((next_observation, next_copier_embedding))
-        dqn_agent.store_transition(curr_observation_with_copier_embedding, curr_action, next_reward, next_observation_with_copier_embedding, False)
+            copier_embedding = get_copier_embedding(copier, curr_observation, num_actions)
+            curr_observation_with_copier_embedding = np.concatenate((curr_observation, copier_embedding))
+            curr_action, dqn_command, entropy = dqn_agent.choose_action(curr_observation_with_copier_embedding, verbose=0)
+            next_observation, next_reward, next_termination, next_truncation, next_info = env.step(curr_action)
+            next_observation = observation_transform(next_observation)
 
-        if episode > dqn_misc["episodes_until_learn"]:
-            devnull = open(os.devnull, 'w')
-            with RedirectStdStreams(stdout=devnull, stderr=devnull): # hack to suppress output
-                dqn_agent.learn()
-            devnull.close()
+            observation_buffer.append(curr_observation)
+            action_buffer.append(curr_action)
+            episode_reward += next_reward
 
-        curr_observation = next_observation
-        curr_reward = next_reward
-        curr_termination = next_termination
-        curr_truncation = next_truncation
-        curr_info = next_info
+            next_copier_embedding = get_copier_embedding(copier, next_observation, num_actions)
+            next_observation_with_copier_embedding = np.concatenate((next_observation, next_copier_embedding))
+            dqn_agent.store_transition(curr_observation_with_copier_embedding, curr_action, next_reward, next_observation_with_copier_embedding, False)
+
+            if episode > dqn_misc["episodes_until_learn"]:
+                devnull = open(os.devnull, 'w')
+                with RedirectStdStreams(stdout=devnull, stderr=devnull): # hack to suppress output
+                    dqn_agent.learn()
+                devnull.close()
+
+            curr_observation = next_observation
+            curr_reward = next_reward
+            curr_termination = next_termination
+            curr_truncation = next_truncation
+            curr_info = next_info
+
+    if idx == 0:
+        pb.reset()
 
     save_buffer(observation_buffer, buffer_filename_prefix, "_obs")
     save_buffer(action_buffer, buffer_filename_prefix, "_act")
@@ -142,9 +127,10 @@ def train_agent(idx, dqn_config, dqn_misc, num_episodes, copier, buffer_filename
         if num_agents_done == num_agents_per_generation: 
             g_generation_done.notify()
 
-def get_generation_data(generation, num_agents_per_generation):
+def get_generation_data(generation, num_agents_per_generation, num_episodes_per_agent):
     observations = dict()
     actions = dict()
+    rewards = dict()
     for element in os.listdir("/tmp/evolve"):
         root_ext = os.path.splitext(element)
         if root_ext[1] != ".npy":
@@ -153,29 +139,36 @@ def get_generation_data(generation, num_agents_per_generation):
         if (len(root_split) != 5
                 or root_split[0] != "gen"
                 or root_split[2] != "agent"
-                or (root_split[4] != "obs" and root_split[4] != "act")):
+                or (root_split[4] != "obs" 
+                    and root_split[4] != "act" 
+                    and root_split[4] != "rew")):
             continue
         file_generation = int(root_split[1])
         agent_idx = int(root_split[3])
-        is_obs = root_split[4] == "obs"
+        suffix = root_split[4]
         filepath = os.path.join("/tmp/evolve", element)
         if file_generation != generation:
             continue
         data = np.load(filepath)
-        if is_obs:
+        if suffix == "obs":
             assert(agent_idx not in observations.keys())
             observations[agent_idx] = data
-        else:
+        elif suffix == "act":
             assert(agent_idx not in actions.keys())
             actions[agent_idx] = data
+        else:
+            assert(agent_idx not in rewards.keys())
+            rewards[agent_idx] = data
 
     assert(len(observations.keys()) == num_agents_per_generation)
     assert(len(actions.keys()) == num_agents_per_generation)
+    assert(len(rewards.keys()) == num_episodes_per_agent)
     for idx in range(num_agents_per_generation):
         assert(idx in observations.keys())
         assert(idx in actions.keys())
+        assert(idx in rewards.keys())
 
-    return observations, actions
+    return observations, actions, rewards
 
 def delete_generation_data(generation, num_agents_per_generation):
     for agent_idx in range(num_agents_per_generation):
@@ -186,12 +179,16 @@ def delete_generation_data(generation, num_agents_per_generation):
         actions_filename = prefix + "_act.npy"
         actions_filepath = os.path.join("/tmp/evolve", actions_filename)
         os.remove(actions_filepath)
+        rewards_filename = prefix + "_rew.npy"
+        rewards_filepath = os.path.join("/tmp/evolve", rewards_filename)
+        os.remove(rewards_filepath)
 
-def create_copier_buffer(observations, actions, num_agents_per_generation):
+def create_buffers(observations, actions, rewards, num_agents_per_generation, num_episodes_per_agent):
     total_timepoints = 0
     for agent_idx in range(num_agents_per_generation):
         agent_observations = observations[agent_idx]
         agent_actions = actions[agent_idx]
+        agent_rewards = rewards[agent_idx]
         assert(len(agent_observations) == len(agent_actions))
         agent_timepoints = len(agent_observations)
         total_timepoints += agent_timepoints
@@ -199,27 +196,40 @@ def create_copier_buffer(observations, actions, num_agents_per_generation):
     observation_dtype = observations[0][0].dtype
     observation_buffer = np.zeros((total_timepoints, observation_dim), dtype=observation_dtype)
     action_buffer = np.zeros(total_timepoints)
+    reward_buffer = np.zeros(num_episodes_per_agent * num_agents_per_generation)
     curr_timepoint = 0
+    curr_reward_idx = 0
     for agent_idx in range(num_agents_per_generation):
         agent_observations = observations[agent_idx]
         agent_actions = actions[agent_idx]
+        agent_rewards = rewards[agent_idx]
         agent_timepoints = len(agent_observations)
         next_timepoint = curr_timepoint + agent_timepoints
+        next_reward_idx = curr_reward_idx + num_episodes_per_agent
         observation_buffer[curr_timepoint:next_timepoint, :] = agent_observations
         action_buffer[curr_timepoint:next_timepoint] = agent_actions
+        reward_buffer[curr_reward_idx:next_reward_idx] = agent_rewards
         curr_timepoint = next_timepoint
-    return observation_buffer, action_buffer
+        curr_reward_idx = next_reward_idx
+
+    return observation_buffer, action_buffer, reward_buffer
 
 def synchronize(config):
     num_generations = config["num_generations"]
     num_agents_per_generation = config["num_agents_per_generation"]
+    num_episodes_per_agent = config["num_episodes_per_agent"]
     for generation in range(num_generations):
         with g_sync_lock:
             g_generation_done.wait()
         num_agents = read_num_agents_done()
         assert(num_agents == num_agents_per_generation)
-        observations, actions = get_generation_data(generation, num_agents_per_generation)
-        observation_buffer, action_buffer = create_copier_buffer(observations, actions, num_agents_per_generation)
+        observations, actions, rewards = get_generation_data(generation, num_agents_per_generation, num_episodes_per_agent)
+        observation_buffer, action_buffer, reward_buffer = create_buffers(observations, actions, rewards, num_agents_per_generation)
+
+        reward_mean = np.mean(reward_buffer)
+        reward_std = np.std(reward_buffer)
+        print(f"Reward mean: {reward_mean}, std_dev: {reward_std}")
+
         copier = Copier(config["copier"])
         copier.train(observation_buffer, action_buffer, verbose=0)
         copier.model.save(g_copier_filepath)
@@ -227,7 +237,6 @@ def synchronize(config):
         with g_sync_lock:
             write_num_agents_done(0)
             g_sync_done.notify_all()
-
 
 def agent_process(agent_idx, config):
     num_episodes = config["num_episodes_per_agent"]
