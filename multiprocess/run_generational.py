@@ -53,6 +53,7 @@ def get_copier_embedding(copier, observation, num_actions):
 
 def train_agent(run_id, idx, dqn_config, dqn_misc, num_episodes, copier, buffer_filename_prefix, num_agents_per_generation, observation_transform):
     from agents.dqn_model import Agent
+    from tensorflow import keras
 
     observation_buffer = list()
     action_buffer = list()
@@ -117,9 +118,11 @@ def train_agent(run_id, idx, dqn_config, dqn_misc, num_episodes, copier, buffer_
             curr_info = next_info
         
         reward_buffer.append(episode_reward)
+        keras.backend.clear_session()
 
     if idx == 0:
         pb.reset()
+
 
     save_buffer(observation_buffer, buffer_filename_prefix, "_obs")
     save_buffer(action_buffer, buffer_filename_prefix, "_act")
@@ -257,6 +260,7 @@ def synchronize(run_id, config):
         copier.train(observation_buffer, action_buffer, verbose=0, tensorboard_log_dir=fit_dir)
         copier.model.save(g_copier_filepath)
         delete_generation_data(generation, num_agents_per_generation)
+
         with g_sync_lock:
             write_num_agents_done(0)
             g_sync_done.notify_all()
