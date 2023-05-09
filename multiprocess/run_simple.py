@@ -94,6 +94,8 @@ def train_agent(dqn_config, dqn_misc, num_episodes, observation_transform):
         tb_reward.add_reward(episode_reward, episode)
         plot_rewards(reward_buffer, "simple_results")
 
+        dqn_agent.epsilon_decay()
+
         keras.backend.clear_session()
 
     pb.reset()
