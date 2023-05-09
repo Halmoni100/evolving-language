@@ -119,6 +119,8 @@ def train_agent(run_id, idx, dqn_config, dqn_misc, num_episodes, copier, buffer_
         reward_buffer.append(episode_reward)
         keras.backend.clear_session()
 
+        dqn_agent.epsilon_decay()
+
     if idx == 0:
         pb.reset()
 
@@ -292,8 +294,6 @@ def run_train_agent(generation, run_id, agent_idx, config):
     train_agent(run_id, agent_idx, config["dqn_config"], config["dqn_misc"], num_episodes, copier, prefix, num_agents_per_generation, taxi_observation_transform)
 
 def agent_process(run_id, agent_idx, config):
-    #os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
-
     num_generations = config["num_generations"]
     for generation in range(num_generations):
         p = Process(target=run_train_agent, args=(generation, run_id, agent_idx, config))
