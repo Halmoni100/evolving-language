@@ -4,7 +4,6 @@ import sys
 sys.path.append("..")
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 from multiprocessing import Process, Lock, Condition
 import uuid
 import shutil
@@ -234,6 +233,10 @@ def plot_rewards(generation_rewards, plot_dir):
 def synchronize(run_id, config):
     from copier import Copier
     from tensorflow import keras
+    import tensorflow as tf
+    gpu_devices = tf.config.list_physical_devices('GPU') 
+    for gpu_instance in gpu_devices: 
+        tf.config.experimental.set_memory_growth(gpu_instance, True)
 
     run_log_dir = os.path.join("logs", run_id)
     os.makedirs(run_log_dir, exist_ok=True)
@@ -271,6 +274,10 @@ def synchronize(run_id, config):
 def run_train_agent(generation, run_id, agent_idx, config):
     from tensorflow import keras
     from copier import Copier
+    import tensorflow as tf
+    gpu_devices = tf.config.list_physical_devices('GPU') 
+    for gpu_instance in gpu_devices: 
+        tf.config.experimental.set_memory_growth(gpu_instance, True)
 
     num_episodes = config["num_episodes_per_agent"]
     num_agents_per_generation = config["num_agents_per_generation"]
@@ -285,6 +292,8 @@ def run_train_agent(generation, run_id, agent_idx, config):
     train_agent(run_id, agent_idx, config["dqn_config"], config["dqn_misc"], num_episodes, copier, prefix, num_agents_per_generation, taxi_observation_transform)
 
 def agent_process(run_id, agent_idx, config):
+    #os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+
     num_generations = config["num_generations"]
     for generation in range(num_generations):
         p = Process(target=run_train_agent, args=(generation, run_id, agent_idx, config))
