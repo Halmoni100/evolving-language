@@ -233,6 +233,7 @@ def plot_rewards(generation_rewards, plot_dir):
 
 def synchronize(run_id, config):
     from copier import Copier
+    from tensorflow import keras
 
     run_log_dir = os.path.join("logs", run_id)
     os.makedirs(run_log_dir, exist_ok=True)
@@ -260,6 +261,8 @@ def synchronize(run_id, config):
         copier.train(observation_buffer, action_buffer, verbose=0, tensorboard_log_dir=fit_dir)
         copier.model.save(g_copier_filepath)
         delete_generation_data(generation, num_agents_per_generation)
+
+        keras.backend.clear_session()
 
         with g_sync_lock:
             write_num_agents_done(0)
